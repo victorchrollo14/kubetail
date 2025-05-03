@@ -12,39 +12,49 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { useSubscription } from '@apollo/client';
-import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
-import numeral from 'numeral';
+import { useSubscription } from "@apollo/client";
+import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import numeral from "numeral";
 import React, {
   createContext,
   useContext,
   useEffect,
   useMemo,
   useState,
-} from 'react';
-import TimeAgo from 'react-timeago';
-import type { Formatter, Suffix, Unit } from 'react-timeago';
-import { RecoilRoot, atom, useRecoilValue, useSetRecoilState } from 'recoil';
+} from "react";
+import TimeAgo from "react-timeago";
+import type { Formatter, Suffix, Unit } from "react-timeago";
+import { RecoilRoot, atom, useRecoilValue, useSetRecoilState } from "recoil";
 
-import { Boxes, Layers3, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
-import { useDebounceCallback } from 'usehooks-ts';
+import {
+  Boxes,
+  Layers3,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+} from "lucide-react";
+import { useDebounceCallback } from "usehooks-ts";
 
-import FormControl from '@kubetail/ui/elements/FormControl';
-import Button from '@kubetail/ui/elements/Button';
-import DataTable from '@kubetail/ui/elements/DataTable';
-import type { SortBy } from '@kubetail/ui/elements/DataTable/Header';
-import Form from '@kubetail/ui/elements/Form';
-import Spinner from '@kubetail/ui/elements/Spinner';
+import FormControl from "@kubetail/ui/elements/FormControl";
+import Button from "@kubetail/ui/elements/Button";
+import DataTable from "@kubetail/ui/elements/DataTable";
+import type { SortBy } from "@kubetail/ui/elements/DataTable/Header";
+import Form from "@kubetail/ui/elements/Form";
+import Spinner from "@kubetail/ui/elements/Spinner";
 
-import appConfig from '@/app-config';
-import logo from '@/assets/logo.svg';
-import AppLayout from '@/components/layouts/AppLayout';
-import AuthRequired from '@/components/utils/AuthRequired';
-import SettingsDropdown from '@/components/widgets/SettingsDropdown';
-import * as dashboardOps from '@/lib/graphql/dashboard/ops';
-import { useListQueryWithSubscription, useLogMetadata, useWorkloadCounter } from '@/lib/hooks';
-import { joinPaths, getBasename, cn } from '@/lib/util';
-import { Workload, allWorkloads, iconMap, labelsPMap } from '@/lib/workload';
+import appConfig from "@/app-config";
+import logo from "@/assets/logo.svg";
+import AppLayout from "@/components/layouts/AppLayout";
+import AuthRequired from "@/components/utils/AuthRequired";
+import SettingsDropdown from "@/components/widgets/SettingsDropdown";
+import * as dashboardOps from "@/lib/graphql/dashboard/ops";
+import {
+  useListQueryWithSubscription,
+  useLogMetadata,
+  useWorkloadCounter,
+} from "@/lib/hooks";
+import { joinPaths, getBasename, cn } from "@/lib/util";
+import { Workload, allWorkloads, iconMap, labelsPMap } from "@/lib/workload";
 import type {
   HomeCronJobsListItemFragmentFragment,
   HomeDaemonSetsListItemFragmentFragment,
@@ -53,7 +63,7 @@ import type {
   HomeDeploymentsListItemFragmentFragment,
   HomeReplicaSetsListItemFragmentFragment,
   HomeStatefulSetsListItemFragmentFragment,
-} from '@/lib/graphql/dashboard/__generated__/graphql';
+} from "@/lib/graphql/dashboard/__generated__/graphql";
 
 /**
  * Shared variables and helper methods
@@ -61,10 +71,10 @@ import type {
 
 const basename = getBasename();
 
-const defaultKubeContext = appConfig.environment === 'cluster' ? '' : undefined;
+const defaultKubeContext = appConfig.environment === "cluster" ? "" : undefined;
 
 const logMetadataMapState = atom({
-  key: 'homeLogMetadataMap',
+  key: "homeLogMetadataMap",
   default: new Map<string, FileInfo>(),
 });
 
@@ -81,7 +91,14 @@ type ContextType = {
   setSearch: React.Dispatch<React.SetStateAction<string>>;
 };
 
-type WorkloadItem = HomeCronJobsListItemFragmentFragment | HomeJobsListItemFragmentFragment | HomeDeploymentsListItemFragmentFragment | HomePodsListItemFragmentFragment | HomeDaemonSetsListItemFragmentFragment | HomeReplicaSetsListItemFragmentFragment | HomeStatefulSetsListItemFragmentFragment;
+type WorkloadItem =
+  | HomeCronJobsListItemFragmentFragment
+  | HomeJobsListItemFragmentFragment
+  | HomeDeploymentsListItemFragmentFragment
+  | HomePodsListItemFragmentFragment
+  | HomeDaemonSetsListItemFragmentFragment
+  | HomeReplicaSetsListItemFragmentFragment
+  | HomeStatefulSetsListItemFragmentFragment;
 
 const Context = createContext({} as ContextType);
 
@@ -96,7 +113,8 @@ function getContainerIDs(
   containerIDs: string[] = [],
 ): string[] {
   ownershipMap.get(parentID)?.forEach((childID) => {
-    if (ownershipMap.has(childID)) getContainerIDs(childID, ownershipMap, containerIDs);
+    if (ownershipMap.has(childID))
+      getContainerIDs(childID, ownershipMap, containerIDs);
     else containerIDs.push(childID);
   });
   return containerIDs;
@@ -118,8 +136,8 @@ function useCronJobs(kubeContext?: string) {
   return useListQueryWithSubscription({
     query: dashboardOps.HOME_CRONJOBS_LIST_FETCH,
     subscription: dashboardOps.HOME_CRONJOBS_LIST_WATCH,
-    queryDataKey: 'batchV1CronJobsList',
-    subscriptionDataKey: 'batchV1CronJobsWatch',
+    queryDataKey: "batchV1CronJobsList",
+    subscriptionDataKey: "batchV1CronJobsWatch",
     variables: { kubeContext },
   });
 }
@@ -128,8 +146,8 @@ function useDaemonSets(kubeContext?: string) {
   return useListQueryWithSubscription({
     query: dashboardOps.HOME_DAEMONSETS_LIST_FETCH,
     subscription: dashboardOps.HOME_DAEMONSETS_LIST_WATCH,
-    queryDataKey: 'appsV1DaemonSetsList',
-    subscriptionDataKey: 'appsV1DaemonSetsWatch',
+    queryDataKey: "appsV1DaemonSetsList",
+    subscriptionDataKey: "appsV1DaemonSetsWatch",
     variables: { kubeContext },
   });
 }
@@ -138,8 +156,8 @@ function useDeployments(kubeContext?: string) {
   return useListQueryWithSubscription({
     query: dashboardOps.HOME_DEPLOYMENTS_LIST_FETCH,
     subscription: dashboardOps.HOME_DEPLOYMENTS_LIST_WATCH,
-    queryDataKey: 'appsV1DeploymentsList',
-    subscriptionDataKey: 'appsV1DeploymentsWatch',
+    queryDataKey: "appsV1DeploymentsList",
+    subscriptionDataKey: "appsV1DeploymentsWatch",
     variables: { kubeContext },
   });
 }
@@ -148,8 +166,8 @@ function useJobs(kubeContext?: string) {
   return useListQueryWithSubscription({
     query: dashboardOps.HOME_JOBS_LIST_FETCH,
     subscription: dashboardOps.HOME_JOBS_LIST_WATCH,
-    queryDataKey: 'batchV1JobsList',
-    subscriptionDataKey: 'batchV1JobsWatch',
+    queryDataKey: "batchV1JobsList",
+    subscriptionDataKey: "batchV1JobsWatch",
     variables: { kubeContext },
   });
 }
@@ -158,8 +176,8 @@ function usePods(kubeContext?: string) {
   return useListQueryWithSubscription({
     query: dashboardOps.HOME_PODS_LIST_FETCH,
     subscription: dashboardOps.HOME_PODS_LIST_WATCH,
-    queryDataKey: 'coreV1PodsList',
-    subscriptionDataKey: 'coreV1PodsWatch',
+    queryDataKey: "coreV1PodsList",
+    subscriptionDataKey: "coreV1PodsWatch",
     variables: { kubeContext },
   });
 }
@@ -168,8 +186,8 @@ function useReplicaSets(kubeContext?: string) {
   return useListQueryWithSubscription({
     query: dashboardOps.HOME_REPLICASETS_LIST_FETCH,
     subscription: dashboardOps.HOME_REPLICASETS_LIST_WATCH,
-    queryDataKey: 'appsV1ReplicaSetsList',
-    subscriptionDataKey: 'appsV1ReplicaSetsWatch',
+    queryDataKey: "appsV1ReplicaSetsList",
+    subscriptionDataKey: "appsV1ReplicaSetsWatch",
     variables: { kubeContext },
   });
 }
@@ -178,8 +196,8 @@ function useStatefulSets(kubeContext?: string) {
   return useListQueryWithSubscription({
     query: dashboardOps.HOME_STATEFULSETS_LIST_FETCH,
     subscription: dashboardOps.HOME_STATEFULSETS_LIST_WATCH,
-    queryDataKey: 'appsV1StatefulSetsList',
-    subscriptionDataKey: 'appsV1StatefulSetsWatch',
+    queryDataKey: "appsV1StatefulSetsList",
+    subscriptionDataKey: "appsV1StatefulSetsWatch",
     variables: { kubeContext },
   });
 }
@@ -229,7 +247,12 @@ function useLogFileInfo(uids: string[], ownershipMap: Map<string, string[]>) {
  * function to apply filters and search
  */
 
-function applySearchAndFilter(fetching: boolean, items: WorkloadItem[] | null | undefined, search: string, namespace: string): undefined | WorkloadItem[] {
+function applySearchAndFilter(
+  fetching: boolean,
+  items: WorkloadItem[] | null | undefined,
+  search: string,
+  namespace: string,
+): undefined | WorkloadItem[] {
   if (fetching) return undefined;
 
   // filter items
@@ -238,12 +261,15 @@ function applySearchAndFilter(fetching: boolean, items: WorkloadItem[] | null | 
     if (item.metadata.deletionTimestamp) return false;
 
     // workloads withing namespace filter and search
-    if (search !== '') {
-      return ((namespace === '' || item.metadata.namespace === namespace) && item.metadata.name.includes(search));
+    if (search !== "") {
+      return (
+        (namespace === "" || item.metadata.namespace === namespace) &&
+        item.metadata.name.includes(search)
+      );
     }
 
     // remove items not in filtered namespace
-    return namespace === '' || item.metadata.namespace === namespace;
+    return namespace === "" || item.metadata.namespace === namespace;
   });
 
   return filteredItems;
@@ -259,10 +285,10 @@ const LogMetadataMapProvider = () => {
 
   const logMetadata = useLogMetadata({
     enabled: appConfig.clusterAPIEnabled && kubeContext !== undefined,
-    kubeContext: kubeContext || '',
+    kubeContext: kubeContext || "",
     onUpdate: (containerID) => {
       document.querySelectorAll(`.last_event_${containerID}`).forEach((el) => {
-        const k = 'animate-flash-bg-green';
+        const k = "animate-flash-bg-green";
         el.classList.remove(k);
         el.classList.add(k);
         setTimeout(() => el.classList.remove(k), 1000);
@@ -314,8 +340,8 @@ const KubeContextPicker = ({
       {loading ? (
         <Form.Option>Loading...</Form.Option>
       ) : (
-        kubeConfig
-        && kubeConfig.contexts.map((context) => (
+        kubeConfig &&
+        kubeConfig.contexts.map((context) => (
           <Form.Option key={context.name} value={context.name}>
             {context.name}
           </Form.Option>
@@ -331,11 +357,14 @@ const KubeContextPicker = ({
 
 const SearchBox = () => {
   const { setSearch } = useContext(Context);
-  const deboucedSearch = useDebounceCallback((value: string) => setSearch(value), 300);
+  const deboucedSearch = useDebounceCallback(
+    (value: string) => setSearch(value),
+    300,
+  );
 
   return (
     <Form onSubmit={(e) => e.preventDefault()}>
-      <div className={cn('search-input relative')}>
+      <div className={cn("search-input relative")}>
         <FormControl
           id="search-box"
           onChange={(e) => deboucedSearch(e.target.value)}
@@ -359,8 +388,8 @@ const NamespacesPicker = () => {
   const { loading, data } = useListQueryWithSubscription({
     query: dashboardOps.HOME_NAMESPACES_LIST_FETCH,
     subscription: dashboardOps.HOME_NAMESPACES_LIST_WATCH,
-    queryDataKey: 'coreV1NamespacesList',
-    subscriptionDataKey: 'coreV1NamespacesWatch',
+    queryDataKey: "coreV1NamespacesList",
+    subscriptionDataKey: "coreV1NamespacesWatch",
     variables: { kubeContext },
   });
 
@@ -391,20 +420,24 @@ const NamespacesPicker = () => {
  * DisplayItems component
  */
 
-const lastModifiedAtFormatter: Formatter = (value: number, unit: Unit, suffix: Suffix, epochMilliseconds: number, nextFormatter?: Formatter) => {
-  if (suffix === 'from now' || unit === 'second') return 'just now';
-  if (nextFormatter) return nextFormatter(value, unit, suffix, epochMilliseconds);
-  return '';
+const lastModifiedAtFormatter: Formatter = (
+  value: number,
+  unit: Unit,
+  suffix: Suffix,
+  epochMilliseconds: number,
+  nextFormatter?: Formatter,
+) => {
+  if (suffix === "from now" || unit === "second") return "just now";
+  if (nextFormatter)
+    return nextFormatter(value, unit, suffix, epochMilliseconds);
+  return "";
 };
 
 type DisplayItemsProps = {
   workload: Workload;
   namespace: string;
   fetching: boolean;
-  items:
-  | WorkloadItem[]
-  | undefined
-  | null;
+  items: WorkloadItem[] | undefined | null;
   ownershipMap: Map<string, string[]>;
 };
 
@@ -425,8 +458,8 @@ const DisplayItems = ({
 
   // handle sorting
   const [sortBy, setSortBy] = useState<SortBy>({
-    field: 'name',
-    direction: 'ASC',
+    field: "name",
+    direction: "ASC",
   });
   const handleSortByChange = (newSortBy: SortBy) => setSortBy(newSortBy);
 
@@ -434,37 +467,40 @@ const DisplayItems = ({
     filteredItems.sort((a, b) => {
       let cmp = 0;
       switch (sortBy.field) {
-        case 'name':
+        case "name":
           cmp = a.metadata.name.localeCompare(b.metadata.name);
           break;
-        case 'namespace':
+        case "namespace":
           cmp = a.metadata.namespace.localeCompare(b.metadata.namespace);
           if (cmp === 0) cmp = a.metadata.name.localeCompare(b.metadata.name);
           break;
-        case 'created':
+        case "created":
           cmp = a.metadata.creationTimestamp - b.metadata.creationTimestamp;
           break;
-        case 'size': {
+        case "size": {
           const sizeA = logFileInfo.get(a.metadata.uid)?.size || 0;
           const sizeB = logFileInfo.get(b.metadata.uid)?.size || 0;
           cmp = sizeA - sizeB;
           break;
         }
-        case 'lastEvent': {
-          const tsA = logFileInfo.get(a.metadata.uid)?.lastModifiedAt || new Date(0);
-          const tsB = logFileInfo.get(b.metadata.uid)?.lastModifiedAt || new Date(0);
+        case "lastEvent": {
+          const tsA =
+            logFileInfo.get(a.metadata.uid)?.lastModifiedAt || new Date(0);
+          const tsB =
+            logFileInfo.get(b.metadata.uid)?.lastModifiedAt || new Date(0);
           cmp = tsA.getTime() - tsB.getTime();
           break;
         }
         default:
-          throw new Error('sort field not implemented');
+          throw new Error("sort field not implemented");
       }
 
       // sort alphabetically if same
-      if (cmp === 0 && sortBy.field !== 'name') return a.metadata.name.localeCompare(b.metadata.name);
+      if (cmp === 0 && sortBy.field !== "name")
+        return a.metadata.name.localeCompare(b.metadata.name);
 
       // otherwise use original cmp
-      return sortBy.direction === 'ASC' ? cmp : cmp * -1;
+      return sortBy.direction === "ASC" ? cmp : cmp * -1;
     });
   }
 
@@ -473,7 +509,8 @@ const DisplayItems = ({
 
   // handle show some-or-all
   const [showAll, setShowAll] = useState(!allWorkloadView);
-  const visibleItems = filteredItems && showAll ? filteredItems : filteredItems?.slice(0, 5);
+  const visibleItems =
+    filteredItems && showAll ? filteredItems : filteredItems?.slice(0, 5);
   const hasMore = filteredItems && filteredItems.length > 5;
 
   // handle toggle-all
@@ -497,7 +534,9 @@ const DisplayItems = ({
 
     // update selectAll
     const values: boolean[] = [];
-    filteredItems?.forEach((item) => values.push(isChecked.get(item.id) || false));
+    filteredItems?.forEach((item) =>
+      values.push(isChecked.get(item.id) || false),
+    );
 
     // all-checked
     if (values.every((val) => val)) setSelectAll(true);
@@ -517,7 +556,7 @@ const DisplayItems = ({
   }, [workloadFilter]);
 
   // hides workloads that doesn't have any filtered items during search
-  if (allWorkloadView && filteredItems?.length === 0 && search !== '') {
+  if (allWorkloadView && filteredItems?.length === 0 && search !== "") {
     return null;
   }
 
@@ -558,7 +597,7 @@ const DisplayItems = ({
             <DataTable.HeaderCell sortField="name" initialSortDirection="ASC">
               Name
             </DataTable.HeaderCell>
-            {namespace === '' && (
+            {namespace === "" && (
               <DataTable.HeaderCell
                 sortField="namespace"
                 initialSortDirection="ASC"
@@ -617,7 +656,7 @@ const DisplayItems = ({
             // for last event
             const lastEventCls = fileInfo?.containerIDs
               .map((id) => `last_event_${id}`)
-              .join(' ');
+              .join(" ");
 
             return (
               <DataTable.Row
@@ -633,7 +672,7 @@ const DisplayItems = ({
                   />
                 </DataTable.DataCell>
                 <DataTable.DataCell>{item.metadata.name}</DataTable.DataCell>
-                {namespace === '' && (
+                {namespace === "" && (
                   <DataTable.DataCell>
                     {item.metadata.namespace}
                   </DataTable.DataCell>
@@ -651,7 +690,7 @@ const DisplayItems = ({
                       {fileInfo?.size === undefined ? (
                         <span>--</span>
                       ) : (
-                        numeral(fileInfo.size).format('0.0 b')
+                        numeral(fileInfo.size).format("0.0 b")
                       )}
                     </DataTable.DataCell>
                     <DataTable.DataCell className={lastEventCls}>
@@ -672,7 +711,7 @@ const DisplayItems = ({
                 <DataTable.DataCell>
                   <a
                     target="_blank"
-                    href={`${joinPaths(basename, '/console')}?kubeContext=${encodeURIComponent(kubeContext || '')}&source=${encodeURIComponent(sourceString)}`}
+                    href={`${joinPaths(basename, "/console")}?kubeContext=${encodeURIComponent(kubeContext || "")}&source=${encodeURIComponent(sourceString)}`}
                     className="flex items-center underline text-primary"
                   >
                     <div>view</div>
@@ -693,7 +732,7 @@ const DisplayItems = ({
                   className="block underline cursor-pointer text-chrome-500"
                   onClick={() => setShowAll(!showAll)}
                 >
-                  {showAll ? 'Show less...' : 'Show more...'}
+                  {showAll ? "Show less..." : "Show more..."}
                 </button>
               )}
             </td>
@@ -709,7 +748,8 @@ const DisplayItems = ({
  */
 
 const DisplayWorkloads = () => {
-  const { search, kubeContext, workloadFilter, namespace } = useContext(Context);
+  const { search, kubeContext, workloadFilter, namespace } =
+    useContext(Context);
 
   const cronjobs = useCronJobs(kubeContext);
   const daemonsets = useDaemonSets(kubeContext);
@@ -741,7 +781,9 @@ const DisplayWorkloads = () => {
     // add container ids
     pods.data?.coreV1PodsList?.items.forEach((pod) => {
       // strip out prefix (e.g. "containerd://")
-      const containerIDs = pod.status.containerStatuses.map((status) => status.containerID.replace(/^[^:]+:\/\/(.*)/, '$1'));
+      const containerIDs = pod.status.containerStatuses.map((status) =>
+        status.containerID.replace(/^[^:]+:\/\/(.*)/, "$1"),
+      );
       m.set(pod.metadata.uid, containerIDs);
     });
 
@@ -754,16 +796,62 @@ const DisplayWorkloads = () => {
     statefulsets.data?.appsV1StatefulSetsList?.metadata.resourceVersion,
   ]);
 
-  const filterCronJobs = applySearchAndFilter(cronjobs.fetching, cronjobs.data?.batchV1CronJobsList?.items, search, namespace);
-  const filterDaemonsets = applySearchAndFilter(daemonsets.fetching, daemonsets.data?.appsV1DaemonSetsList?.items, search, namespace);
-  const filterPods = applySearchAndFilter(pods.fetching, pods.data?.coreV1PodsList?.items, search, namespace);
-  const filterJobs = applySearchAndFilter(jobs.fetching, jobs.data?.batchV1JobsList?.items, search, namespace);
-  const filterDeployments = applySearchAndFilter(deployments.fetching, deployments.data?.appsV1DeploymentsList?.items, search, namespace);
-  const filterReplicasets = applySearchAndFilter(replicasets.fetching, replicasets.data?.appsV1ReplicaSetsList?.items, search, namespace);
-  const filterStatefulsets = applySearchAndFilter(statefulsets.fetching, statefulsets.data?.appsV1StatefulSetsList?.items, search, namespace);
+  const filterCronJobs = applySearchAndFilter(
+    cronjobs.fetching,
+    cronjobs.data?.batchV1CronJobsList?.items,
+    search,
+    namespace,
+  );
+  const filterDaemonsets = applySearchAndFilter(
+    daemonsets.fetching,
+    daemonsets.data?.appsV1DaemonSetsList?.items,
+    search,
+    namespace,
+  );
+  const filterPods = applySearchAndFilter(
+    pods.fetching,
+    pods.data?.coreV1PodsList?.items,
+    search,
+    namespace,
+  );
+  const filterJobs = applySearchAndFilter(
+    jobs.fetching,
+    jobs.data?.batchV1JobsList?.items,
+    search,
+    namespace,
+  );
+  const filterDeployments = applySearchAndFilter(
+    deployments.fetching,
+    deployments.data?.appsV1DeploymentsList?.items,
+    search,
+    namespace,
+  );
+  const filterReplicasets = applySearchAndFilter(
+    replicasets.fetching,
+    replicasets.data?.appsV1ReplicaSetsList?.items,
+    search,
+    namespace,
+  );
+  const filterStatefulsets = applySearchAndFilter(
+    statefulsets.fetching,
+    statefulsets.data?.appsV1StatefulSetsList?.items,
+    search,
+    namespace,
+  );
 
   // we want to show this only when user searches for a workload
-  const noResultFound = search !== '' ? noSearchResults(filterCronJobs, filterDeployments, filterPods, filterJobs, filterDaemonsets, filterReplicasets, filterStatefulsets) : false;
+  const noResultFound =
+    search !== ""
+      ? noSearchResults(
+          filterCronJobs,
+          filterDeployments,
+          filterPods,
+          filterJobs,
+          filterDaemonsets,
+          filterReplicasets,
+          filterStatefulsets,
+        )
+      : false;
 
   // Render data tables
   const tableEls: JSX.Element[] = [];
@@ -861,7 +949,10 @@ const DisplayWorkloads = () => {
 
   return (
     <>
-      <DataTable className="rounded-table-wrapper overflow-x-scroll  w-full" size="sm">
+      <DataTable
+        className="rounded-table-wrapper overflow-x-scroll  w-full"
+        size="sm"
+      >
         {tableEls}
       </DataTable>
       {/* showing this only on all workloads view */}
@@ -869,7 +960,9 @@ const DisplayWorkloads = () => {
         <div className="flex items-center border border-dashed border-secondary rounded-md justify-center h-32">
           <div className="text-center">
             <Search className="h-8 w-8 text-chrome-400 mx-auto mb-2" />
-            <p className="text-base text-chrome-400">No matching workloads found</p>
+            <p className="text-base text-chrome-400">
+              No matching workloads found
+            </p>
           </div>
         </div>
       )}
@@ -896,7 +989,7 @@ const Header = () => {
         </a>
       </div>
       <div className="flex flex-row items-center gap-3">
-        {appConfig.environment === 'desktop' && (
+        {appConfig.environment === "desktop" && (
           <KubeContextPicker value={kubeContext} setValue={setKubeContext} />
         )}
         <SettingsDropdown />
@@ -909,8 +1002,21 @@ const Header = () => {
  * CountBadge component
  */
 
-const CountBadge = ({ count, workload, workloadFilter }: { count: number, workload: Workload, workloadFilter: Workload | undefined }) => (
-  <span className={cn('text-xs font-medium px-2 py-[1px]  rounded-full  group-hover:bg-blue-200', workload === workloadFilter ? 'bg-blue-200' : 'bg-gray-200')}>
+const CountBadge = ({
+  count,
+  workload,
+  workloadFilter,
+}: {
+  count: number;
+  workload: Workload;
+  workloadFilter: Workload | undefined;
+}) => (
+  <span
+    className={cn(
+      "text-xs font-medium px-2 py-[1px]  rounded-full  group-hover:bg-blue-200",
+      workload === workloadFilter ? "bg-blue-200" : "bg-gray-200",
+    )}
+  >
     {count}
   </span>
 );
@@ -920,18 +1026,20 @@ const CountBadge = ({ count, workload, workloadFilter }: { count: number, worklo
  */
 
 const Sidebar = () => {
-  const { workloadFilter, setWorkloadFilter, kubeContext, namespace } = useContext(Context);
+  const { workloadFilter, setWorkloadFilter, kubeContext, namespace } =
+    useContext(Context);
 
   // kubeContext sometimes is undefined
   const { loading, error, counter } = useWorkloadCounter(
-    kubeContext ?? '',
+    kubeContext ?? "",
     namespace,
   );
 
   // using some default sidebar values during data loading and error states
-  const sidebarItems: [Workload, number][] = loading || error
-    ? allWorkloads.map((w) => [w, 0])
-    : Array.from(counter.entries());
+  const sidebarItems: [Workload, number][] =
+    loading || error
+      ? allWorkloads.map((w) => [w, 0])
+      : Array.from(counter.entries());
 
   return (
     <div className="px-4">
@@ -941,10 +1049,10 @@ const Sidebar = () => {
             <button
               type="button"
               className={cn(
-                'flex items-center justify-between py-2 px-4 rounded-lg group hover:bg-blue-100 w-full',
+                "flex items-center justify-between py-2 px-4 rounded-lg group hover:bg-blue-100 w-full",
                 workload === workloadFilter
-                  ? 'bg-blue-100 text-primary font-medium'
-                  : 'text-chrome-500 ',
+                  ? "bg-blue-100 text-primary font-medium"
+                  : "text-chrome-500 ",
               )}
               onClick={() => setWorkloadFilter(workload)}
             >
@@ -981,13 +1089,17 @@ const Content = () => {
         <form
           method="get"
           target="_blank"
-          action={joinPaths(basename, '/console')}
+          action={joinPaths(basename, "/console")}
         >
           <input type="hidden" name="kubeContext" value={kubeContext} />
           <div className="flex py-4 justify-between  flex-row ">
             <div className="flex gap-2 flex-row items-center">
-              {!sidebarOpen
-                && <PanelLeftOpen className="cursor-pointer  text-chrome-400 hover:text-primary " onClick={() => setSidebarOpen(true)} />}
+              {!sidebarOpen && (
+                <PanelLeftOpen
+                  className="cursor-pointer  text-chrome-400 hover:text-primary "
+                  onClick={() => setSidebarOpen(true)}
+                />
+              )}
               <h1 className="text-2xl font-semibold">Dashboard</h1>
             </div>
             <div className="flex gap-2 ">
@@ -1019,7 +1131,8 @@ type InnerLayoutProps = {
 };
 
 const InnerLayout = ({ sidebar, header, content }: InnerLayoutProps) => {
-  const { setWorkloadFilter, sidebarOpen, setSidebarOpen } = useContext(Context);
+  const { setWorkloadFilter, sidebarOpen, setSidebarOpen } =
+    useContext(Context);
 
   const sidebarWidth = sidebarOpen ? 200 : 0;
 
@@ -1043,7 +1156,10 @@ const InnerLayout = ({ sidebar, header, content }: InnerLayoutProps) => {
                 <Boxes className="h-6 w-6 text-chrome-600" />
                 <span className="font-semibold text-lg"> Workloads</span>
               </button>
-              <PanelLeftClose className="cursor-pointer text-chrome-400 hover:text-primary " onClick={() => setSidebarOpen(false)} />
+              <PanelLeftClose
+                className="cursor-pointer text-chrome-400 hover:text-primary "
+                onClick={() => setSidebarOpen(false)}
+              />
             </header>
             {sidebarOpen && sidebar}
           </aside>
@@ -1062,22 +1178,36 @@ export default function Page() {
   const [kubeContext, setKubeContext] = useState(defaultKubeContext);
   const [workloadFilter, setWorkloadFilter] = useState<Workload>();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
-  const [namespace, setNamespace] = useState('');
+  const [namespace, setNamespace] = useState("");
 
-  const context = useMemo(() => ({
-    kubeContext,
-    setKubeContext,
-    namespace,
-    setNamespace,
-    workloadFilter,
-    setWorkloadFilter,
-    sidebarOpen,
-    setSidebarOpen,
-    search,
-    setSearch,
-  }), [kubeContext, setKubeContext, namespace, setNamespace, workloadFilter, setWorkloadFilter, sidebarOpen, setSidebarOpen, search, setSearch]);
+  const context = useMemo(
+    () => ({
+      kubeContext,
+      setKubeContext,
+      namespace,
+      setNamespace,
+      workloadFilter,
+      setWorkloadFilter,
+      sidebarOpen,
+      setSidebarOpen,
+      search,
+      setSearch,
+    }),
+    [
+      kubeContext,
+      setKubeContext,
+      namespace,
+      setNamespace,
+      workloadFilter,
+      setWorkloadFilter,
+      sidebarOpen,
+      setSidebarOpen,
+      search,
+      setSearch,
+    ],
+  );
 
   return (
     <AuthRequired>
