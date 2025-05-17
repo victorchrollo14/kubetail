@@ -140,9 +140,6 @@ jobs:
           if [[ "${{ matrix.pkg }}" == "deb" ]]; then
               mkdir -p .debpkg/usr/bin
               cp -p bin/* .debpkg/usr/bin
-          elif [[ "${{ matrix.pkg }}" == "rpm" ]]; then
-              mkdir -p .rpmpkg/usr/bin
-              cp -p bin/* .rpmpkg/usr/bin
           fi
 
       - name: create a .deb package
@@ -162,37 +159,16 @@ jobs:
           FILE='./kubetail_${{ steps.tagName.outputs.tag }}_${{ matrix.pkgArch }}.deb' 
           OUTPUT_FILE=${FILE}.sha256
           sha256sum "$FILE" | cut -d " " -f 1 > "$OUTPUT_FILE"
-         
-      - name: create a .rpm package
-        if: matrix.pkg == 'rpm'
-        uses: jiro4989/build-rpm-action@v2
-        with:
-          package: kubetail
-          package_root: .rpmpkg
-          maintainer: Andres Amorey
-          version: ${{ steps.tagName.outputs.tag }}
-          license: Apache License Version 2.0
-          arch: ${{ matrix.pkgArch == 'amd64' && 'x86_64' || 'aarch64' }} # architecture as x86_64 and aarch64 in rpm spec file
-          desc: cli tool to get realtime logs from kubernetes
-
+          mkdir -p deb-output
+          mv ./kubetail* ./deb-output/ 
+      
       - name: Upload .deb artifacts
         if: matrix.pkg == 'deb'
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-kubetail-${{ steps.tagName.outputs.tag }}-${{ matrix.pkgArch }}.zip # both the .deb file and sha256 are inside this zip
-          path: |
-             ./*.deb
-             ./*.sha256
-
-      - name: Upload .rpm artifacts
-        if: matrix.pkg == 'rpm'
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts-kubetail-${{ steps.tagName.outputs.tag }}-${{ matrix.pkgArch }}.zip
-          path: | 
-             ./*.rpm 
-             !./*-debuginfo-*.rpm
-
+          name: artifacts-kubetail-${{ steps.tagName.outputs.tag }}-${{ matrix.pkgArch }} 
+          path: deb-output/* 
+  
   release:
     name: Create GitHub release
     needs: package
