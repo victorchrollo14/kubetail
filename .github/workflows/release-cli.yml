@@ -93,23 +93,99 @@ jobs:
   #         name: artifacts-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
   #         path: bin/*
 
-  package:
-    name: build linux packages .deb and .rpm
+  # package-deb:
+  #   name: build linux packages .deb and .rpm
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - pkg: deb
+  #           GOOS: linux 
+  #           GOARCH: amd64
+  #           pkgArch: amd64
+  #         # - pkg: rpm
+  #         #   GOOS: linux 
+  #         #   GOARCH: amd64
+  #         #   pkgArch: amd64
+  #         - pkg: deb
+  #           GOOS: linux 
+  #           GOARCH: arm64
+  #           pkgArch: arm64
+  #         # - pkg: rpm
+  #         #   GOOS: linux 
+  #         #   GOARCH: arm64
+  #         #   pkgArch: arm64
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: Get tag name
+  #       uses: olegtarasov/get-tag@2.1.3
+  #       id: tagName
+  #       with:
+  #         tagRegex: "cli/v(.*)"
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 22
+  #     - uses: pnpm/action-setup@v3
+  #       with:
+  #         version: 9
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: "1.23.4"
+  #         cache: false
+  #     - name: Run build script
+  #       run: make build VERSION=${{ steps.tagName.outputs.tag }}
+  #
+  #     - name: create dir structure for .${{ matrix.pkg }} package
+  #       run: |
+  #         if [[ "${{ matrix.pkg }}" == "deb" ]]; then
+  #             mkdir -p .debpkg/usr/bin
+  #             cp -p bin/* .debpkg/usr/bin
+  #         fi
+  #
+  #     - name: create a .deb package
+  #       if: matrix.pkg == 'deb'
+  #       uses: jiro4989/build-deb-action@v4
+  #       with:
+  #         package: kubetail
+  #         package_root: .debpkg
+  #         maintainer: Andres Amorey
+  #         version: ${{ steps.tagName.outputs.tag }} 
+  #         arch: ${{ matrix.pkgArch }}
+  #         desc: cli tool to get realtime logs from kubernetes
+  #
+  #     - name: Calculate sha256 checksum 
+  #       if: matrix.pkg == 'deb'
+  #       run: |
+  #         FILE='./kubetail_${{ steps.tagName.outputs.tag }}_${{ matrix.pkgArch }}.deb' 
+  #         OUTPUT_FILE=${FILE}.sha256
+  #         sha256sum "$FILE" | cut -d " " -f 1 > "$OUTPUT_FILE"
+  #         mkdir -p deb-output
+  #         mv ./kubetail* ./deb-output/ 
+  #
+  #     - name: Upload .deb artifacts
+  #       if: matrix.pkg == 'deb'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: artifacts-kubetail-${{ steps.tagName.outputs.tag }}-${{ matrix.pkgArch }} 
+  #         path: deb-output/* 
+
+  package-rpm:
+    name: build rpm package 
     strategy:
       matrix:
         include:
-          - pkg: deb
-            GOOS: linux 
-            GOARCH: amd64
-            pkgArch: amd64
-          # - pkg: rpm
+          # - pkg: deb
           #   GOOS: linux 
           #   GOARCH: amd64
           #   pkgArch: amd64
-          - pkg: deb
+          - pkg: rpm
             GOOS: linux 
-            GOARCH: arm64
-            pkgArch: arm64
+            GOARCH: amd64
+            pkgArch: amd64
+          # - pkg: deb
+          #   GOOS: linux 
+          #   GOARCH: arm64
+          #   pkgArch: arm64
           # - pkg: rpm
           #   GOOS: linux 
           #   GOARCH: arm64
@@ -135,43 +211,37 @@ jobs:
       - name: Run build script
         run: make build VERSION=${{ steps.tagName.outputs.tag }}
 
-      - name: create dir structure for .${{ matrix.pkg }} package
+      - name: create tarball for the binary
         run: |
-          if [[ "${{ matrix.pkg }}" == "deb" ]]; then
-              mkdir -p .debpkg/usr/bin
-              cp -p bin/* .debpkg/usr/bin
-          fi
+           CLI_VER='${{ steps.tagName.outputs.tag }}'
+           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+           mkdir -p "~/rpmbuild/SOURCES/kubetail-${CLI_VER}"
+           mv bin/kubetail ~/rpmbuild/SOURCES/kubetail-${CLI_VER}/
+           cd ~/rpmbuild/SOURCES 
+           tar czf "kubetail-${CLI_VER}.tar.gz" "kubetail-${CLI_VER}/"
+           ls -la
+           rm -rf "./kubetail-${CLI_VER}/"
+ 
+      - name: build RPM package
+        id: rpm
+        uses: naveenrajm7/rpmbuild@master
+        with: 
+          spec_file: ".github/workflows/kubetail-rpm.spec"
+  
+      - name: list all rpmbuild dirs
+        run: |
+          ls -lha ~/rpmbuild/*/*
 
-      - name: create a .deb package
-        if: matrix.pkg == 'deb'
-        uses: jiro4989/build-deb-action@v4
-        with:
-          package: kubetail
-          package_root: .debpkg
-          maintainer: Andres Amorey
-          version: ${{ steps.tagName.outputs.tag }} 
-          arch: ${{ matrix.pkgArch }}
-          desc: cli tool to get realtime logs from kubernetes
-      
-      - name: Calculate sha256 checksum 
-        if: matrix.pkg == 'deb'
-        run: |
-          FILE='./kubetail_${{ steps.tagName.outputs.tag }}_${{ matrix.pkgArch }}.deb' 
-          OUTPUT_FILE=${FILE}.sha256
-          sha256sum "$FILE" | cut -d " " -f 1 > "$OUTPUT_FILE"
-          mkdir -p deb-output
-          mv ./kubetail* ./deb-output/ 
-      
-      - name: Upload .deb artifacts
-        if: matrix.pkg == 'deb'
+      - name: Upload rpm artifacts 
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-kubetail-${{ steps.tagName.outputs.tag }}-${{ matrix.pkgArch }} 
-          path: deb-output/* 
-  
+          name: artifacts-${{ matrix.pkgArch }}-rpm
+          path: ${{ steps.rpm.outputs.rpm_dir_path }} 
+
+
   release:
     name: Create GitHub release
-    needs: package
+    needs: package-rpm
     runs-on: ubuntu-24.04
     steps:
       - name: Download artifacts
