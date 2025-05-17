@@ -6,14 +6,21 @@ permissions:
 on:
   push:
     tags:
-      - 'cli/v*'
+      - "cli/v*"
 
 jobs:
   build:
     name: Build binaries
     strategy:
       matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-latest, macos-13, windows-latest]
+        os:
+          [
+            ubuntu-24.04,
+            ubuntu-24.04-arm,
+            macos-latest,
+            macos-13,
+            windows-latest,
+          ]
         include:
           - os: ubuntu-24.04
             GOOS: linux
@@ -51,7 +58,7 @@ jobs:
           version: 9
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23.4'
+          go-version: "1.23.4"
           cache: false
       - name: Run build script
         run: make build VERSION=${{ steps.tagName.outputs.tag }}
@@ -86,9 +93,81 @@ jobs:
           name: artifacts-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
           path: bin/*
 
+  package:
+    name: build linux packages .deb and .rpm
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        include:
+          - os: ubuntu-24.04
+            GOOS: linux
+            GOARCH: amd64
+          - os: ubuntu-24.04-arm
+            GOOS: linux
+            GOARCH: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Get tag name
+        uses: olegtarasov/get-tag@2.1.3
+        id: tagName
+        with:
+          tagRegex: "cli/v(.*)"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.4"
+          cache: false
+      - name: Run build script
+        run: make build VERSION=${{ steps.tagName.outputs.tag }}
+
+      - name: create dir structure for .deb and .rpm package
+        run: |
+          mkdir -p .debpkg/usr/bin
+          cp -p bin/* .debpkg/usr/bin 
+          mkdir -p .rpmpkg/usr/bin
+          cp -p bin/* .rpmpkg/usr/bin
+
+      - name: create a .deb package
+        uses: jiro4989/build-deb-action@v4
+        with:
+          package: kubetail
+          package_root: .debpkg
+          maintainer: Andres Amorey
+          version: ${{ steps.tagName.outputs.tag }}
+          arch: ${{ matrix.GOARCH }}
+          desc: cli tool to get realtime logs from kubernetes
+
+      - name: create a .rpm package
+        uses: jiro4989/build-rpm-action@v2
+        with:
+          package: kubetail
+          package_root: .rpmpkg
+          maintainer: Andres Amorey
+          version: ${{ steps.tagName.outputs.tag }}
+          arch: ${{ matrix.GOARCH == 'amd64' && 'x86_64' || 'aarch64' }} # architecture as x86_64 and aarch64 in rpm spec file
+          desc: cli tool to get realtime logs from kubernetes
+
+      - name: Upload .deb artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.GOARCH }}-deb
+          path: ./*.deb
+
+      - name: Upload .rpm artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.GOARCH }}-rpm
+          path: ./*.rpm
+
   release:
     name: Create GitHub release
-    needs: build
+    needs: package
     runs-on: ubuntu-24.04
     steps:
       - name: Download artifacts
