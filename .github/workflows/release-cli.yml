@@ -220,7 +220,6 @@ jobs:
            cd ~/rpmbuild/SOURCES 
            tar czf "kubetail-${CLI_VER}.tar.gz" "kubetail-${CLI_VER}/"
            ls -la
-           rm -rf "./kubetail-${CLI_VER}/"
          
       - name: build RPM package
         id: buildrpm 
