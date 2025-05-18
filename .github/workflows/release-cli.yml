@@ -178,10 +178,10 @@ jobs:
             GOOS: linux 
             GOARCH: amd64
             pkgArch: amd64
-          # - pkg: rpm
-          #   GOOS: linux 
-          #   GOARCH: arm64
-          #   pkgArch: arm64
+          - pkg: rpm
+            GOOS: linux 
+            GOARCH: arm64
+            pkgArch: arm64
     runs-on: ubuntu-24.04
     steps:
       - name: Get tag name
@@ -220,7 +220,6 @@ jobs:
            cd ~/rpmbuild/SOURCES 
            tar czf "kubetail-${CLI_VER}.tar.gz" "kubetail-${CLI_VER}/"
            ls -la
-           rm -rf "./kubetail-${CLI_VER}/"
          
       - name: build RPM package
         id: buildrpm 
