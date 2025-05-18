@@ -228,24 +228,30 @@ jobs:
           
           if [[ "${{ matrix.pkgArch }}" == "amd64" ]]; then
             ARCH="x86_64"
+            rpmbuild -ba ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" --define "arch ${ARCH}"
           else
             ARCH="aarch64"
+            sed -i '/BuildArch/d' ~/rpmbuild/SPECS/kubetail.spec
+            rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" 
           fi
 
           echo "arch=$ARCH" >> $GITHUB_OUTPUT
-          rpmbuild -ba ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" --define "arch ${ARCH}"
 
-      # - name: build RPM package
-      #   id: rpm
-      #   uses: naveenrajm7/rpmbuild@master
-      #   with: 
-      #     spec_file: ".github/workflows/kubetail-rpm.spec"
-  
+      - name: Calculate sha256 checksum 
+        run: |
+          mkdir -p rpm-output
+          FILE_NAME=kubetail-${{ steps.tagName.outputs.tag }}-1.${{ steps.buildrpm.outputs.arch }}.rpm
+          mv ~/rpmbuild/RPMS/'${{ steps.buildrpm.outputs.arch }}'/"${FILE_NAME}" ./rpm-output/ 
+          
+          FILE=./rpm-output/"${FILE_NAME}"
+          OUTPUT_FILE="${FILE}".sha256
+          sha256sum "$FILE" | cut -d " " -f 1 > "$OUTPUT_FILE"
+        
       - name: Upload rpm artifacts 
         uses: actions/upload-artifact@v4
         with:
           name: artifacts-${{ matrix.pkgArch }}-rpm
-          path: ~/rpmbuild/RPMS/${{ steps.buildrpm.outputs.arch }}/* 
+          path: rpm-output/*  
 
 
   release:
