@@ -98,15 +98,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - pkg: deb
-            GOOS: linux
-            GOARCH: amd64
-            pkgArch: amd64
+          # - pkg: deb
+          #   GOOS: linux
+          #   GOARCH: amd64
+          #   pkgArch: amd64
           - pkg: deb
             GOOS: linux
             GOARCH: arm64
             pkgArch: arm64
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Get tag name
         uses: olegtarasov/get-tag@2.1.3
@@ -153,91 +153,91 @@ jobs:
       - name: Upload .deb artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-kubetail-${{ steps.tagName.outputs.tag }}-${{ matrix.pkgArch }}
+          name: artifacts-kubetail-${{ steps.tagName.outputs.tag }}-${{ matrix.pkgArch }}-deb
           path: deb-output/*
 
-  package-rpm:
-    name: Build rpm package
-    strategy:
-      matrix:
-        include:
-          - pkg: rpm
-            GOOS: linux
-            GOARCH: amd64
-            pkgArch: amd64
-          - pkg: rpm
-            GOOS: linux
-            GOARCH: arm64
-            pkgArch: arm64
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Get tag name
-        uses: olegtarasov/get-tag@2.1.3
-        id: tagName
-        with:
-          tagRegex: "cli/v(.*)"
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.23.4"
-          cache: false
-      - name: Run build script
-        run: make build VERSION=${{ steps.tagName.outputs.tag }}
-
-      - name: install the rpm and rpm build
-        run: sudo apt install rpm build-essential
-
-      - name: copy spec file to SPEC dir
-        run: |
-          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          cp .github/workflows/kubetail-rpm.spec ~/rpmbuild/SPECS/kubetail.spec
-
-      - name: create tarball for the binary
-        run: |
-          CLI_VER='${{ steps.tagName.outputs.tag }}'
-          mkdir -p ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
-          mv bin/kubetail ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
-          cd ~/rpmbuild/SOURCES 
-          tar czf "kubetail-${CLI_VER}.tar.gz" "kubetail-${CLI_VER}/"
-          ls -la
-
-      - name: build RPM package
-        id: buildrpm
-        run: |
-          CLI_VER='${{ steps.tagName.outputs.tag }}'
-
-          if [[ "${{ matrix.pkgArch }}" == "amd64" ]]; then
-            ARCH="x86_64"
-            rpmbuild -ba ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" --define "arch ${ARCH}"
-          else
-            ARCH="aarch64"
-            sed -i '/BuildArch/d' ~/rpmbuild/SPECS/kubetail.spec
-            rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" 
-          fi
-
-          echo "arch=$ARCH" >> $GITHUB_OUTPUT
-
-      - name: Calculate sha256 checksum
-        run: |
-          mkdir -p rpm-output
-          FILE_NAME=kubetail-${{ steps.tagName.outputs.tag }}-1.${{ steps.buildrpm.outputs.arch }}.rpm
-          mv ~/rpmbuild/RPMS/'${{ steps.buildrpm.outputs.arch }}'/"${FILE_NAME}" ./rpm-output/ 
-
-          FILE=./rpm-output/"${FILE_NAME}"
-          OUTPUT_FILE="${FILE}".sha256
-          sha256sum "$FILE" | cut -d " " -f 1 > "$OUTPUT_FILE"
-
-      - name: Upload rpm artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts-${{ matrix.pkgArch }}-rpm
-          path: rpm-output/*
+  # package-rpm:
+  #   name: Build rpm package
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - pkg: rpm
+  #           GOOS: linux
+  #           GOARCH: amd64
+  #           pkgArch: amd64
+  #         - pkg: rpm
+  #           GOOS: linux
+  #           GOARCH: arm64
+  #           pkgArch: arm64
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: Get tag name
+  #       uses: olegtarasov/get-tag@2.1.3
+  #       id: tagName
+  #       with:
+  #         tagRegex: "cli/v(.*)"
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 22
+  #     - uses: pnpm/action-setup@v3
+  #       with:
+  #         version: 9
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: "1.23.4"
+  #         cache: false
+  #     - name: Run build script
+  #       run: make build VERSION=${{ steps.tagName.outputs.tag }}
+  #
+  #     - name: install the rpm and rpm build
+  #       run: sudo apt install rpm build-essential
+  #
+  #     - name: copy spec file to SPEC dir
+  #       run: |
+  #         mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+  #         cp .github/workflows/kubetail-rpm.spec ~/rpmbuild/SPECS/kubetail.spec
+  #
+  #     - name: create tarball for the binary
+  #       run: |
+  #         CLI_VER='${{ steps.tagName.outputs.tag }}'
+  #         mkdir -p ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
+  #         mv bin/kubetail ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
+  #         cd ~/rpmbuild/SOURCES
+  #         tar czf "kubetail-${CLI_VER}.tar.gz" "kubetail-${CLI_VER}/"
+  #         ls -la
+  #
+  #     - name: build RPM package
+  #       id: buildrpm
+  #       run: |
+  #         CLI_VER='${{ steps.tagName.outputs.tag }}'
+  #
+  #         if [[ "${{ matrix.pkgArch }}" == "amd64" ]]; then
+  #           ARCH="x86_64"
+  #           rpmbuild -ba ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" --define "arch ${ARCH}"
+  #         else
+  #           ARCH="aarch64"
+  #           sed -i '/BuildArch/d' ~/rpmbuild/SPECS/kubetail.spec
+  #           rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}"
+  #         fi
+  #
+  #         echo "arch=$ARCH" >> $GITHUB_OUTPUT
+  #
+  #     - name: Calculate sha256 checksum
+  #       run: |
+  #         mkdir -p rpm-output
+  #         FILE_NAME=kubetail-${{ steps.tagName.outputs.tag }}-1.${{ steps.buildrpm.outputs.arch }}.rpm
+  #         mv ~/rpmbuild/RPMS/'${{ steps.buildrpm.outputs.arch }}'/"${FILE_NAME}" ./rpm-output/
+  #
+  #         FILE=./rpm-output/"${FILE_NAME}"
+  #         OUTPUT_FILE="${FILE}".sha256
+  #         sha256sum "$FILE" | cut -d " " -f 1 > "$OUTPUT_FILE"
+  #
+  #     - name: Upload rpm artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: artifacts-${{ matrix.pkgArch }}-rpm
+  #         path: rpm-output/*
 
   release:
     name: Create GitHub release
