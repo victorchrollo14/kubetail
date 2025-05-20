@@ -98,12 +98,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - pkg: deb
-            GOOS: linux
+          - GOOS: linux
             GOARCH: amd64
             pkgArch: amd64
-          - pkg: deb
-            GOOS: linux
+          - GOOS: linux
             GOARCH: arm64
             pkgArch: arm64
     runs-on: ubuntu-24.04
@@ -127,7 +125,7 @@ jobs:
       - name: Run build script
         run: make build VERSION=${{ steps.tagName.outputs.tag }}
 
-      - name: create dir structure for .${{ matrix.pkg }} package
+      - name: create dir structure for .deb package
         run: |
           mkdir -p .debpkg/usr/bin
           cp -p bin/* .debpkg/usr/bin
@@ -160,12 +158,13 @@ jobs:
     name: Build rpm package
     strategy:
       matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
         include:
-          - pkg: rpm
+          - os: ubuntu-24.04
             GOOS: linux
             GOARCH: amd64
             pkgArch: x86_64
-          - pkg: rpm
+          - os: ubuntu-24.04-arm
             GOOS: linux
             GOARCH: arm64
             pkgArch: aarch64
@@ -203,12 +202,11 @@ jobs:
           CLI_VER='${{ steps.tagName.outputs.tag }}'
           mkdir -p ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
           mv bin/kubetail ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
-          cd ~/rpmbuild/SOURCES
+          cd ~/rpmbuild/SOURCES 
           tar czf "kubetail-${CLI_VER}.tar.gz" "kubetail-${CLI_VER}/"
           ls -la
 
       - name: build RPM package
-        id: buildrpm
         run: |
           CLI_VER='${{ steps.tagName.outputs.tag }}'
           ARCH='${{ matrix.pkgArch }}'
@@ -217,16 +215,17 @@ jobs:
             rpmbuild -ba ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" --define "arch ${ARCH}"
           else
             sed -i '/BuildArch/d' ~/rpmbuild/SPECS/kubetail.spec
-            rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}"
+            rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" 
           fi
 
       - name: Calculate sha256 checksum
         run: |
           mkdir -p rpm-output
           FILE_NAME=kubetail-${{ steps.tagName.outputs.tag }}-1.${{ matrix.pkgArch }}.rpm
-          mv ~/rpmbuild/RPMS/'${{ matrix.pkgArch }}'/"${FILE_NAME}" ./rpm-output/
+          FILE_NEW_NAME=kubetail-${{ steps.tagName.outputs.tag }}-1.${{ matrix.GOARCH }}.rpm # renaming arch to arm64 and amd64
+          mv ~/rpmbuild/RPMS/'${{ matrix.pkgArch }}'/"${FILE_NAME}" ./rpm-output/"${FILE_NEW_NAME}" 
 
-          FILE=./rpm-output/"${FILE_NAME}"
+          FILE=./rpm-output/"${FILE_NEW_NAME}"
           OUTPUT_FILE="${FILE}".sha256
           sha256sum "$FILE" | cut -d " " -f 1 > "$OUTPUT_FILE"
 
