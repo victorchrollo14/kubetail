@@ -14,13 +14,11 @@ jobs:
   #   strategy:
   #     matrix:
   #       os:
-  #         [
-  #           ubuntu-24.04,
-  #           ubuntu-24.04-arm,
-  #           macos-latest,
-  #           macos-13,
-  #           windows-latest,
-  #         ]
+  #         - ubuntu-24.04
+  #         - ubuntu-24.04-arm
+  #         - macos-latest
+  #         - macos-13
+  #         - windows-latest
   #       include:
   #         - os: ubuntu-24.04
   #           GOOS: linux
@@ -135,16 +133,16 @@ jobs:
         with:
           package: kubetail
           package_root: .debpkg
-          maintainer: Andres Amorey
+          maintainer: Andres Morey
           version: ${{ steps.tagName.outputs.tag }}
           arch: ${{ matrix.pkgArch }}
-          desc: cli tool to get realtime logs from kubernetes
+          desc: "Real-time logging dashboard for Kubernetes"
 
       - name: Calculate sha256 checksum
         run: |
-          FILE='./kubetail_${{ steps.tagName.outputs.tag }}_${{ matrix.pkgArch }}.deb' 
+          FILE='./kubetail_${{ steps.tagName.outputs.tag }}_${{ matrix.pkgArch }}.deb'
           OUTPUT_FILE=${FILE}.sha256
-          sha256sum "$FILE" | cut -d " " -f 1 > "$OUTPUT_FILE"
+          sha256sum "$FILE" | cut -d " " -f 1 >"$OUTPUT_FILE"
           mkdir -p deb-output
           mv ./kubetail* ./deb-output/
 
@@ -195,14 +193,14 @@ jobs:
       - name: copy spec file to SPEC dir
         run: |
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          cp .github/workflows/kubetail-rpm.spec ~/rpmbuild/SPECS/kubetail.spec
+          cp .github/ci-config/kubetail-rpm.spec ~/rpmbuild/SPECS/kubetail.spec
 
       - name: create tarball for the binary
         run: |
           CLI_VER='${{ steps.tagName.outputs.tag }}'
           mkdir -p ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
           mv bin/kubetail ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
-          cd ~/rpmbuild/SOURCES 
+          cd ~/rpmbuild/SOURCES
           tar czf "kubetail-${CLI_VER}.tar.gz" "kubetail-${CLI_VER}/"
           ls -la
 
@@ -211,18 +209,14 @@ jobs:
           CLI_VER='${{ steps.tagName.outputs.tag }}'
           ARCH='${{ matrix.pkgArch }}'
 
-          if [[ "${ARCH}" == "x86_64" ]]; then
-            rpmbuild -ba ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" --define "arch ${ARCH}"
-          else
-            sed -i '/BuildArch/d' ~/rpmbuild/SPECS/kubetail.spec
-            rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}" 
-          fi
+          rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}"
 
       - name: Calculate sha256 checksum
         run: |
           mkdir -p rpm-output
           FILE_NAME=kubetail-${{ steps.tagName.outputs.tag }}-1.${{ matrix.pkgArch }}.rpm
           FILE_NEW_NAME=kubetail-${{ steps.tagName.outputs.tag }}-1.${{ matrix.GOARCH }}.rpm # renaming arch to arm64 and amd64
+
           mv ~/rpmbuild/RPMS/'${{ matrix.pkgArch }}'/"${FILE_NAME}" ./rpm-output/"${FILE_NEW_NAME}" 
 
           FILE=./rpm-output/"${FILE_NEW_NAME}"
