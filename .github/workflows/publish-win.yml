@@ -32,37 +32,50 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           path: winget-pkgs
 
-      # - name: Get Release info
-      #   id: release-info
-      #   run: |
-      #     VERSION="${{ github.event.release.tag_name }}"
-      #     echo "tag=${VERSION#cli/v}" >> $GITHUB_OUTPUT
-      #     echo "release_name=${{ github.event.release.name }}" >> $GITHUB_OUTPUT
-      #     echo "release_body=${{ github.event.release.body }}" >> $GITHUB_OUTPUT
-
       - name: Extract tags and sha
         id: meta
         run: |
-          pwd
-          ls -la
-          ls -la ./winget-manifests
           echo 'tag_name = ${{ steps.release-info.outputs.tag_name }}'
           AMD64_SHA=$( cat ./kubetail-windows-amd64.zip.sha256 )
           ARM64_SHA=$( cat ./kubetail-windows-arm64.zip.sha256 )
           TAG_NAME="${{ steps.release-info.outputs.tag_name }}"
 
-          # git fetch --tags
-          # PREV_TAG=$(git tag --sort=-creatordate | grep '^cli/v' | sed -n '2p')
-
-          # echo "prev_tag=${PREV_TAG#cli/v}" >> $GITHUB_OUTPUT
           echo "tag=${TAG_NAME#cli/v}" >> $GITHUB_OUTPUT
           echo "amd64_sha=$AMD64_SHA" >> $GITHUB_OUTPUT
           echo "arm64_sha=$ARM64_SHA" >> $GITHUB_OUTPUT
 
-      - name: Update winget release
+      - name: Update manifests for latest release
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yq
+
+          TAG_NAME='${{ steps.meta.outputs.tag }}'
+          BASE_PATH: https://github.com/kubetail-org/kubetail/releases/download
+          AMD64_SHA: ${{ steps.meta.outputs.amd64_sha }}
+          ARM64_SHA: ${{ steps.meta.outputs.arm64_sha }}
+
+          cd ./winget-manifests/.github/manifests   
+
+          # update the installer yaml 
+          yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.installer.yaml 
+          yq e ".Installers[0].InstallerUrl = \"${BASE_PATH}/cli%2Fv${TAG_NAME}/kubetail-windows-amd64.zip\"" -i ./Kubetail.Kubetail.installer.yaml
+          yq e ".Installers[1].InstallerUrl = \"${BASE_PATH}/cli%2Fv${TAG_NAME}/kubetail-windows-arm64.zip\"" -i ./Kubetail.Kubetail.installer.yaml
+
+          yq e ".Installers[0].InstallerSha256 = \"${AMD64_SHA}\"" -i ./Kubetail.Kubetail.installer.yaml
+          yq e ".Installers[1].InstallerSha256 = \"${ARM64_SHA}\"" -i ./Kubetail.Kubetail.installer.yaml
+
+          # update the locale and kubetail yaml 
+          yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.locale.en-US.yaml
+          yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.yaml
+
+          cat ./Kubetail.Kubetail.installer.yaml
+          cat ./Kubetail.Kubetail.locale.en-US.yaml
+          cat ./Kubetail.Kubetail.yaml
+
+      - name: Update winget pkgs repo
         run: |
           NEW_FOLDER='./winget-pkgs/manifests/k/Kubetail/Kubetail/${{ steps.meta.outputs.tag }}'
-          mkdir -p "$NEW_FOLDER"
+          mkdir -p "$NEW_FOLDER" 
 
           # better to update before copying and then we can make the pr
           cp ./winget-manifests/.github/manifests/* "$NEW_FOLDER"/ 
