@@ -36,8 +36,8 @@ jobs:
         id: meta
         run: |
           echo 'tag_name = ${{ steps.release-info.outputs.tag_name }}'
-          AMD64_SHA=$( cat ./kubetail-windows-amd64.zip.sha256 )
-          ARM64_SHA=$( cat ./kubetail-windows-arm64.zip.sha256 )
+          AMD64_SHA=$( tr -d '\r' < './kubetail-windows-amd64.zip.sha256' )
+          ARM64_SHA=$( tr -d '\r' < './kubetail-windows-arm64.zip.sha256' )
           TAG_NAME="${{ steps.release-info.outputs.tag_name }}"
 
           echo "tag=${TAG_NAME#cli/v}" >> $GITHUB_OUTPUT
