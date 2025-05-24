@@ -1,0 +1,22 @@
+name: publish-win
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  winget-release:
+    name: Release on winget
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Release info
+        id: release-info
+        run: |
+          echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          echo "release_name=${{ github.event.release.name }}" >> $GITHUB_OUTPUT
+          echo "release_body=${{ github.event.release.body }}" >> $GITHUB_OUTPUT
+          echo "upload_url=${{ github.event.release.upload_url }}" >> $GITHUB_OUTPUT
+          echo "assets_url=${{ github.event.release.assets_url }}" >> $GITHUB_OUTPUT
