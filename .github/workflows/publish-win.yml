@@ -46,7 +46,7 @@ jobs:
 
       - name: Update manifests for latest release
         run: |
-          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq &&\
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq 
           sudo chmod +x /usr/local/bin/yq
 
           TAG_NAME='${{ steps.meta.outputs.tag }}'
@@ -56,7 +56,7 @@ jobs:
 
           cd ./winget-manifests/.github/manifests   
 
-          # update the installer yaml 
+          # update the installer yaml
           yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.installer.yaml 
           yq e ".Installers[0].InstallerUrl = \"${BASE_PATH}/cli%2Fv${TAG_NAME}/kubetail-windows-amd64.zip\"" -i ./Kubetail.Kubetail.installer.yaml
           yq e ".Installers[1].InstallerUrl = \"${BASE_PATH}/cli%2Fv${TAG_NAME}/kubetail-windows-arm64.zip\"" -i ./Kubetail.Kubetail.installer.yaml
@@ -72,11 +72,22 @@ jobs:
           cat ./Kubetail.Kubetail.locale.en-US.yaml
           cat ./Kubetail.Kubetail.yaml
 
-      - name: Update winget pkgs repo
+      - name: Copy manifests to winget-pkgs
         run: |
           NEW_FOLDER='./winget-pkgs/manifests/k/Kubetail/Kubetail/${{ steps.meta.outputs.tag }}'
           mkdir -p "$NEW_FOLDER" 
 
-          # better to update before copying and then we can make the pr
           cp ./winget-manifests/.github/manifests/* "$NEW_FOLDER"/ 
           ls -la "$NEW_FOLDER"
+
+      - name: Commit and raise PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          path: ./winget-pkgs
+          commit-message: "chore: Add manifest for Kubetail ${{ steps.meta.outputs.tag }}"
+          title: "New version: Kubetail.Kubetail version ${{ steps.meta.outputs.tag }}"
+          body: "This PR adds the manifest for Kubetail.Kubetail version ${{ steps.meta.outputs.tag }}."
+          branch: winget-release-${{ steps.meta.outputs.tag }}
+          base: master
+          push-to-fork: victorchrollo14/winget-pkgs
