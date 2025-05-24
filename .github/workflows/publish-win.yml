@@ -15,7 +15,7 @@ jobs:
         uses: robinraju/release-downloader@v1
         with:
           latest: true
-          fileName: "kubetail-windows*sha256"
+          fileName: "kubetail-windows*zip.sha256"
 
       - name: Clone the winget packages repo
         uses: actions/checkout@v4
@@ -47,6 +47,6 @@ jobs:
 
       - name: Update winget release
         run: |
-          cd winget-pkgs/manifests/k/kubetail/kubetail
+          cd ./winget-pkgs/manifests/k/kubetail/kubetail
           mkdir -p ${{ steps.sha.outputs.tag }}
           ls -la
