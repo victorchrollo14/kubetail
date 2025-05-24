@@ -43,6 +43,7 @@ jobs:
       - name: Extract tags and sha
         id: meta
         run: |
+          pwd
           ls -la
           ls -la ./winget-manifests
           echo 'tag_name = ${{ steps.release-info.outputs.tag_name }}'
@@ -60,7 +61,9 @@ jobs:
 
       - name: Update winget release
         run: |
-          cd ./winget-pkgs/manifests/k/Kubetail/Kubetail
-          mkdir -p ${{ steps.meta.outputs.tag }} && cd ${{ steps.meta.outputs.tag }} 
-          cp "${GITHUB_WORKSPACE}/winget-manifests/*" ./
-          ls -la
+          NEW_FOLDER='./winget-pkgs/manifests/k/Kubetail/Kubetail/${{ steps.meta.outputs.tag }}'
+          mkdir -p "$NEW_FOLDER"
+
+          # better to update before copying and then we can make the pr
+          cp ./winget-manifests/.github/manifests/* "$NEW_FOLDER"/ 
+          ls -la "$NEW_FOLDER"
