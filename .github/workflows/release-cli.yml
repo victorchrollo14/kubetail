@@ -14,11 +14,11 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-24.04
+          # - ubuntu-24.04
           # - ubuntu-24.04-arm
           # - macos-latest
           # - macos-13
-          # - windows-latest
+          - windows-latest
         include:
           - os: ubuntu-24.04
             GOOS: linux
@@ -32,12 +32,12 @@ jobs:
           # - os: macos-13
           #   GOOS: darwin
           #   GOARCH: amd64
-          # - os: windows-latest
-          #   GOOS: windows
-          #   GOARCH: amd64
-          # - os: windows-11-arm
-          #   GOOS: windows
-          #   GOARCH: arm64
+          - os: windows-latest
+            GOOS: windows
+            GOARCH: amd64
+          - os: windows-11-arm
+            GOOS: windows
+            GOARCH: arm64
     runs-on: ${{ matrix.os }}
     outputs:
       artifacts: ${{ steps.upload.outputs.artifact-names }}
