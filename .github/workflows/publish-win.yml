@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 1
           path: winget-manifests
 
-      - name: Clone the winget packages repo
+      - name: Clone winget-pkgs forked repo
         uses: actions/checkout@v4
         with:
           repository: victorchrollo14/winget-pkgs
@@ -35,7 +35,6 @@ jobs:
       - name: Extract tags and sha
         id: meta
         run: |
-          echo 'tag_name = ${{ steps.release-info.outputs.tag_name }}'
           AMD64_SHA=$( tr -d '\r' < './kubetail-windows-amd64.zip.sha256' )
           ARM64_SHA=$( tr -d '\r' < './kubetail-windows-arm64.zip.sha256' )
           TAG_NAME="${{ steps.release-info.outputs.tag_name }}"
@@ -44,17 +43,19 @@ jobs:
           echo "amd64_sha=$AMD64_SHA" >> $GITHUB_OUTPUT
           echo "arm64_sha=$ARM64_SHA" >> $GITHUB_OUTPUT
 
-      - name: Update manifests for latest release
+      - name: Download yq package
         run: |
           sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq 
           sudo chmod +x /usr/local/bin/yq
 
+      - name: Update manifests for latest release
+        run: |
           TAG_NAME='${{ steps.meta.outputs.tag }}'
           BASE_PATH=https://github.com/kubetail-org/kubetail/releases/download
           AMD64_SHA=${{ steps.meta.outputs.amd64_sha }}
           ARM64_SHA=${{ steps.meta.outputs.arm64_sha }}
 
-          cd ./winget-manifests/.github/manifests   
+          cd ./winget-manifests/.github/manifests 
 
           # update the installer yaml
           yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.installer.yaml 
@@ -68,17 +69,12 @@ jobs:
           yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.locale.en-US.yaml
           yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.yaml
 
-          cat ./Kubetail.Kubetail.installer.yaml
-          cat ./Kubetail.Kubetail.locale.en-US.yaml
-          cat ./Kubetail.Kubetail.yaml
-
       - name: Copy manifests to winget-pkgs
         run: |
           NEW_FOLDER='./winget-pkgs/manifests/k/Kubetail/Kubetail/${{ steps.meta.outputs.tag }}'
           mkdir -p "$NEW_FOLDER" 
 
-          cp ./winget-manifests/.github/manifests/* "$NEW_FOLDER"/ 
-          ls -la "$NEW_FOLDER"
+          cp ./winget-manifests/.github/manifests/* "$NEW_FOLDER"/
 
       - name: Commit and raise PR
         uses: peter-evans/create-pull-request@v7
