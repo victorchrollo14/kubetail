@@ -17,6 +17,14 @@ jobs:
           latest: true
           fileName: "kubetail-windows*zip.sha256"
 
+      - name: Sparse checkout only manifests
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/manifests
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          path: winget-manifests
+
       - name: Clone the winget packages repo
         uses: actions/checkout@v4
         with:
@@ -36,22 +44,23 @@ jobs:
         id: meta
         run: |
           ls -la
+          ls -la ./winget-manifests
           echo 'tag_name = ${{ steps.release-info.outputs.tag_name }}'
           AMD64_SHA=$( cat ./kubetail-windows-amd64.zip.sha256 )
           ARM64_SHA=$( cat ./kubetail-windows-arm64.zip.sha256 )
           TAG_NAME="${{ steps.release-info.outputs.tag_name }}"
 
-          git fetch --tags
-          PREV_TAG=$(git tag --sort=-creatordate | grep '^cli/v' | sed -n '2p')
+          # git fetch --tags
+          # PREV_TAG=$(git tag --sort=-creatordate | grep '^cli/v' | sed -n '2p')
 
-          echo "prev_tag=${PREV_TAG#cli/v}" >> $GITHUB_OUTPUT
+          # echo "prev_tag=${PREV_TAG#cli/v}" >> $GITHUB_OUTPUT
           echo "tag=${TAG_NAME#cli/v}" >> $GITHUB_OUTPUT
           echo "amd64_sha=$AMD64_SHA" >> $GITHUB_OUTPUT
           echo "arm64_sha=$ARM64_SHA" >> $GITHUB_OUTPUT
 
       - name: Update winget release
         run: |
-          ls -la
           cd ./winget-pkgs/manifests/k/Kubetail/Kubetail
-          mkdir -p ${{ steps.meta.outputs.tag }}
+          mkdir -p ${{ steps.meta.outputs.tag }} && cd ${{ steps.meta.outputs.tag }} 
+          cp "${GITHUB_WORKSPACE}/winget-manifests/*" ./
           ls -la
