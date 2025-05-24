@@ -1,0 +1,31 @@
+name: publish-win
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  winget-release:
+    name: Release on winget
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Release info
+        id: release-info
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          echo "tag=${VERSION#cli/v}" >> $GITHUB_OUTPUT
+          echo "release_name=${{ github.event.release.name }}" >> $GITHUB_OUTPUT
+          echo "release_body=${{ github.event.release.body }}" >> $GITHUB_OUTPUT
+
+      - name: Download sha files
+        uses: robinraju/release-downloader@v1
+        with:
+          latest: true
+          fileName: "kubetail-linux-amd64.sha256"
+
+      - name: Checking if the files exist
+        run: |
+          ls -la | grep kubetail
