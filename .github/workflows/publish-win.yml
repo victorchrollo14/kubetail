@@ -24,8 +24,8 @@ jobs:
         uses: robinraju/release-downloader@v1
         with:
           latest: true
-          fileName: "kubetail-linux-amd64.sha256"
+          fileName: "kubetail-windows*sha256"
 
       - name: Checking if the files exist
         run: |
-          ls -la | grep kubetail
+          ls -la
