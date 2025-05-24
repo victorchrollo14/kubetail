@@ -80,3 +80,16 @@ jobs:
           # better to update before copying and then we can make the pr
           cp ./winget-manifests/.github/manifests/* "$NEW_FOLDER"/ 
           ls -la "$NEW_FOLDER"
+          cd ./winget
+
+      - name: Commit and open PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          path: ./winget-pkgs
+          commit-message: "chore: Add manifest for Kubetail ${{ steps.meta.outputs.tag }}"
+          title: "Add Kubetail ${{ steps.meta.outputs.tag }} to winget-pkgs"
+          body: "This PR adds the manifest for Kubetail version ${{ steps.meta.outputs.tag }}."
+          branch: kubetail-win-release-${{ steps.meta.outputs.tag }}
+          base: master
+          push-to-fork: true
