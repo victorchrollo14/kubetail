@@ -10,22 +10,43 @@ jobs:
     name: Release on winget
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Get Release info
+      - name: Download sha256 files
         id: release-info
-        run: |
-          VERSION="${{ github.event.release.tag_name }}"
-          echo "tag=${VERSION#cli/v}" >> $GITHUB_OUTPUT
-          echo "release_name=${{ github.event.release.name }}" >> $GITHUB_OUTPUT
-          echo "release_body=${{ github.event.release.body }}" >> $GITHUB_OUTPUT
-
-      - name: Download sha files
         uses: robinraju/release-downloader@v1
         with:
           latest: true
-          fileName: "kubetail-*sha256"
+          fileName: "kubetail-windows*sha256"
 
-      - name: Checking if the files exist
+      - name: Clone the winget packages repo
+        uses: actions/checkout@v4
+        with:
+          repository: victorchrollo14/winget-pkgs
+          token: ${{ secrets.GH_TOKEN }}
+          path: winget-pkgs
+
+      # - name: Get Release info
+      #   id: release-info
+      #   run: |
+      #     VERSION="${{ github.event.release.tag_name }}"
+      #     echo "tag=${VERSION#cli/v}" >> $GITHUB_OUTPUT
+      #     echo "release_name=${{ github.event.release.name }}" >> $GITHUB_OUTPUT
+      #     echo "release_body=${{ github.event.release.body }}" >> $GITHUB_OUTPUT
+
+      - name: Checking sha files and winget repo
+        id: sha
         run: |
+          ls -la
+          echo 'tag_name = ${{ steps.release-info.outputs.tag_name }}'
+          AMD64_SHA=$( cat ./kubetail-windows-amd64.zip.sha256 )
+          ARM64_SHA=$( cat ./kubetail-windows-arm64.zip.sha256 )
+          TAG_NAME="${{ steps.release-info.outputs.tag_name }}"
+
+          echo "tag=${TAG_NAME#cli/v}" >> $GITHUB_OUTPUT
+          echo "amd64_sha=$AMD64_SHA" >> $GITHUB_OUTPUT
+          echo "arm64_sha=$ARM64_SHA" >> $GITHUB_OUTPUT
+
+      - name: Update winget release
+        run: |
+          cd winget-pkgs/manifests/k/kubetail/kubetail
+          mkdir -p ${{ steps.sha.outputs.tag }}
           ls -la
