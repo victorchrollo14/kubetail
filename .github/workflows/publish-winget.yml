@@ -32,6 +32,15 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           path: winget-pkgs
 
+      - name: Sync fork with upstream
+        working-directory: winget-pkgs
+        run: |
+          git remote add upstream https://github.com/microsoft/winget-pkgs.git
+          git fetch upstream master
+          git checkout master
+          git rebase upstream/master
+          git push origin master --force
+
       - name: Extract tags and sha
         id: meta
         run: |
