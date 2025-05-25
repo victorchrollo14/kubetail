@@ -28,7 +28,7 @@ jobs:
       - name: Clone winget-pkgs forked repo
         uses: actions/checkout@v4
         with:
-          repository: victorchrollo14/winget-pkgs
+          repository: kubetail-org/winget-pkgs
           token: ${{ secrets.GH_TOKEN }}
           path: winget-pkgs
 
@@ -94,4 +94,4 @@ jobs:
           body: "This PR adds the manifest for Kubetail.Kubetail version ${{ steps.meta.outputs.tag }}."
           branch: winget-release-${{ steps.meta.outputs.tag }}
           base: master
-          push-to-fork: victorchrollo14/winget-pkgs
+          push-to-fork: kubetail-org/winget-pkgs
