@@ -48,8 +48,15 @@ jobs:
           sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
           sudo chmod +x /usr/local/bin/yq
 
+      - name: Copy manifests template to winget-pkgs
+        run: |
+          NEW_FOLDER='./winget-pkgs/manifests/k/Kubetail/Kubetail/${{ steps.meta.outputs.tag }}'
+          mkdir -p "$NEW_FOLDER" 
+
+          cp ./winget-manifests/.github/ci-config/winget/* "$NEW_FOLDER"/
+
       - name: Update manifests for latest release
-        working-directory: winget-manifests/.github/ci-config/winget
+        working-directory: winget-pkgs/manifests/k/Kubetail/Kubetail/${{ steps.meta.outputs.tag }}
         env:
           TAG_NAME: ${{ steps.meta.outputs.tag }}
           BASE_PATH: https://github.com/kubetail-org/kubetail/releases/download
@@ -67,13 +74,6 @@ jobs:
           # update the locale and kubetail yaml
           yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.locale.en-US.yaml
           yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.yaml
-
-      - name: Copy manifests to winget-pkgs
-        run: |
-          NEW_FOLDER='./winget-pkgs/manifests/k/Kubetail/Kubetail/${{ steps.meta.outputs.tag }}'
-          mkdir -p "$NEW_FOLDER" 
-
-          cp ./winget-manifests/.github/ci-config/winget/* "$NEW_FOLDER"/
 
       - name: Commit and raise PR
         uses: peter-evans/create-pull-request@v7
