@@ -1,8 +1,5 @@
 name: publish-winget
 
-permissions:
-  contents: write
-
 on:
   release:
     types:
@@ -32,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: victorchrollo14/winget-pkgs
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
           path: winget-pkgs
 
       - name: Sync fork with upstream
@@ -90,7 +87,7 @@ jobs:
       - name: Commit and raise PR
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
           path: ./winget-pkgs
           commit-message: "New version: Kubetail.Kubetail ${{ steps.meta.outputs.tag }}"
           title: "New version: Kubetail.Kubetail version ${{ steps.meta.outputs.tag }}"
