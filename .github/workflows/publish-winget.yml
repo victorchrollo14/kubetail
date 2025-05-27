@@ -32,14 +32,14 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           path: winget-pkgs
 
-      - name: Sync fork with upstream
-        working-directory: winget-pkgs
-        run: |
-          git remote add upstream https://github.com/microsoft/winget-pkgs.git
-          git fetch upstream master
-          git checkout master
-          git rebase upstream/master
-          git push origin master --force
+      # - name: Sync fork with upstream
+      #   working-directory: winget-pkgs
+      #   run: |
+      #     git remote add upstream https://github.com/microsoft/winget-pkgs.git
+      #     git fetch upstream master
+      #     git checkout master
+      #     git rebase upstream/master
+      #     git push origin master --force
 
       - name: Extract tags and sha
         id: meta
@@ -94,4 +94,4 @@ jobs:
           body: "This PR adds the manifest for Kubetail.Kubetail version ${{ steps.meta.outputs.tag }}."
           branch: winget-release-${{ steps.meta.outputs.tag }}
           base: master
-          push-to-fork: victorchrollo14/winget-pkgs
+          # push-to-fork: victorchrollo14/winget-pkgs

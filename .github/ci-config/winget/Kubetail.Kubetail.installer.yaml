@@ -1,8 +1,5 @@
-# Created with YamlCreate.ps1 Dumplings Mod
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
-
 PackageIdentifier: Kubetail.Kubetail
-PackageVersion: 0.5.1
+PackageVersion: <placeholder>
 InstallerType: zip
 NestedInstallerType: portable
 NestedInstallerFiles:
@@ -10,10 +7,10 @@ NestedInstallerFiles:
     PortableCommandAlias: kubetail
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/kubetail-org/kubetail/releases/download/cli%2Fv0.5.1/kubetail-windows-amd64.zip
-    InstallerSha256: 2AF8F5107FBB9DAD521E1A7CB883560700D6B9353F2E4E125B1E803BF04AA332
+    InstallerUrl: <placeholder>
+    InstallerSha256: <placeholder>
   - Architecture: arm64
-    InstallerUrl: https://github.com/kubetail-org/kubetail/releases/download/cli%2Fv0.5.1/kubetail-windows-arm64.zip
-    InstallerSha256: FB45771E1E91C9ADABBD763F0D3A23DE456569DE76E45F2BA54A0CF7B89B490E
+    InstallerUrl: <placeholder>
+    InstallerSha256: <placeholder>
 ManifestType: installer
 ManifestVersion: 1.10.0
