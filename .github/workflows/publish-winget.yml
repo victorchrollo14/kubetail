@@ -25,21 +25,12 @@ jobs:
           fetch-depth: 1
           path: winget-manifests
 
-      - name: Clone winget-pkgs forked repo
+      - name: Clone winget-pkgs upstream repo
         uses: actions/checkout@v4
         with:
           repository: kubetail-org/winget-pkgs
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.PUBLISH_WINGET_TOKEN }}
           path: winget-pkgs
-
-      # - name: Sync fork with upstream
-      #   working-directory: winget-pkgs
-      #   run: |
-      #     git remote add upstream https://github.com/microsoft/winget-pkgs.git
-      #     git fetch upstream master
-      #     git checkout master
-      #     git rebase upstream/master
-      #     git push origin master --force
 
       - name: Extract tags and sha
         id: meta
@@ -84,10 +75,10 @@ jobs:
           yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.locale.en-US.yaml
           yq e ".PackageVersion = \"$TAG_NAME\"" -i ./Kubetail.Kubetail.yaml
 
-      - name: Commit and raise PR
+      - name: Commit and raise PR from forked repo
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.PUBLISH_WINGET_TOKEN }}
           path: ./winget-pkgs
           commit-message: "New version: Kubetail.Kubetail ${{ steps.meta.outputs.tag }}"
           title: "New version: Kubetail.Kubetail version ${{ steps.meta.outputs.tag }}"
