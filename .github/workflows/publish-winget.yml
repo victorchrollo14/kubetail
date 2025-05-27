@@ -1,5 +1,8 @@
 name: publish-winget
 
+permissions:
+  contents: write
+
 on:
   release:
     types:
@@ -28,8 +31,8 @@ jobs:
       - name: Clone winget-pkgs forked repo
         uses: actions/checkout@v4
         with:
-          repository: kubetail-org/winget-pkgs
-          token: ${{ secrets.GH_TOKEN }}
+          repository: victorchrollo14/winget-pkgs
+          token: ${{ secrets.GITHUB_TOKEN }}
           path: winget-pkgs
 
       - name: Sync fork with upstream
@@ -87,11 +90,11 @@ jobs:
       - name: Commit and raise PR
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           path: ./winget-pkgs
-          commit-message: "chore: Add manifest for Kubetail ${{ steps.meta.outputs.tag }}"
+          commit-message: "New version: Kubetail.Kubetail ${{ steps.meta.outputs.tag }}"
           title: "New version: Kubetail.Kubetail version ${{ steps.meta.outputs.tag }}"
           body: "This PR adds the manifest for Kubetail.Kubetail version ${{ steps.meta.outputs.tag }}."
           branch: winget-release-${{ steps.meta.outputs.tag }}
           base: master
-          push-to-fork: kubetail-org/winget-pkgs
+          push-to-fork: victorchrollo14/winget-pkgs
