@@ -83,5 +83,7 @@ jobs:
 
       - name: Verify kubectl and k3s cluster is running
         run: |
+          # waiting for the nodes to be ready and errori if it takes more than 60s  
+          kubectl wait --for=condition=Ready nodes --all --timeout=60s
           kubectl get pods
           cat $HOME/.kube/config
