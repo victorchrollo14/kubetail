@@ -86,7 +86,7 @@ jobs:
 
       - name: Make binary globally accessible
         run: |
-          ls -la
+          chmod +x bin/kubetail
           mv bin/kubetail /usr/local/bin/kubetail
 
       - name: Setup k3s cluster using k3d
