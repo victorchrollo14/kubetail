@@ -9,64 +9,64 @@ on:
       - E2E-exp
 
 jobs:
-  # build:
-  #   name: Build binaries
-  #   strategy:
-  #     matrix:
-  #       os:
-  #         - ubuntu-24.04
-  #         # - ubuntu-24.04-arm
-  #         # - macos-latest
-  #         # - macos-13
-  #         # - windows-latest
-  #       include:
-  #         - os: ubuntu-24.04
-  #           GOOS: linux
-  #           GOARCH: amd64
-  #         # - os: ubuntu-24.04-arm
-  #         #   GOOS: linux
-  #         #   GOARCH: arm64
-  #         # - os: macos-latest
-  #         #   GOOS: darwin
-  #         #   GOARCH: arm64
-  #         # - os: macos-13
-  #         #   GOOS: darwin
-  #         #   GOARCH: amd64
-  #         # - os: windows-latest
-  #         #   GOOS: windows
-  #         #   GOARCH: amd64
-  #         # - os: windows-11-arm
-  #         #   GOOS: windows
-  #         #   GOARCH: arm64
-  #   runs-on: ${{ matrix.os }}
-  #   outputs:
-  #     artifacts: ${{ steps.upload.outputs.artifact-names }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions-ecosystem/action-get-latest-tag@v1
-  #       id: tagName
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 22
-  #     - uses: pnpm/action-setup@v4
-  #       with:
-  #         version: 10
-  #     - uses: actions/setup-go@v5
-  #       with:
-  #         go-version: "1.24.3"
-  #         cache: false
-  #     - name: Run build script
-  #       run: |
-  #         echo '${{ steps.tagName.outputs.tag }}'
-  #         make build VERSION=${{ steps.tagName.outputs.tag }}
-  #     - name: Upload artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: artifacts-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
-  #         path: bin/*
+  build:
+    name: Build binaries
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          # - ubuntu-24.04-arm
+          # - macos-latest
+          # - macos-13
+          # - windows-latest
+        include:
+          - os: ubuntu-24.04
+            GOOS: linux
+            GOARCH: amd64
+          # - os: ubuntu-24.04-arm
+          #   GOOS: linux
+          #   GOARCH: arm64
+          # - os: macos-latest
+          #   GOOS: darwin
+          #   GOARCH: arm64
+          # - os: macos-13
+          #   GOOS: darwin
+          #   GOARCH: amd64
+          # - os: windows-latest
+          #   GOOS: windows
+          #   GOARCH: amd64
+          # - os: windows-11-arm
+          #   GOOS: windows
+          #   GOARCH: arm64
+    runs-on: ${{ matrix.os }}
+    outputs:
+      artifacts: ${{ steps.upload.outputs.artifact-names }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-ecosystem/action-get-latest-tag@v1
+        id: tagName
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.3"
+          cache: false
+      - name: Run build script
+        run: |
+          echo '${{ steps.tagName.outputs.tag }}'
+          make build VERSION=${{ steps.tagName.outputs.tag }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.GOOS }}-${{ matrix.GOARCH }}
+          path: bin/*
 
   e2e-test:
-    # needs: build
+    needs: build
     runs-on: ubuntu-24.04
     steps:
       - name: Sparse checkout only manifests
@@ -77,17 +77,17 @@ jobs:
           fetch-depth: 1
           path: k3d
 
-      # - name: Download artifacts
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     path: bin
-      #     pattern: artifacts-linux-amd64
-      #     merge-multiple: true
-      #
-      # - name: Make binary globally accessible
-      #   run: |
-      #     ls -la
-      #     mv bin/kubetail /usr/local/bin/kubetail
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bin
+          pattern: artifacts-linux-amd64
+          merge-multiple: true
+
+      - name: Make binary globally accessible
+        run: |
+          ls -la
+          mv bin/kubetail /usr/local/bin/kubetail
 
       - name: Setup k3s cluster using k3d
         uses: AbsaOSS/k3d-action@v2
@@ -104,7 +104,6 @@ jobs:
         run: |
           # waiting for the nodes to be ready and results in error if it takes more than 60s  
           kubectl wait --for=condition=Ready nodes --all --timeout=60s
-          pwd && ls -la 
           kubectl apply -f .github/ci-config/k3d/log-demo.yaml
           kubectl wait --for=condition=available deployment/log-demo --timeout=60s
 
