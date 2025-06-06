@@ -317,7 +317,7 @@ jobs:
           version: 10
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.24.3"
+          go-version: '1.24.3'
           cache: false
       - name: Run build script
         run: make build
@@ -499,13 +499,14 @@ jobs:
     needs: build-cli-linux-amd64
     runs-on: ubuntu-24.04
     steps:
-      - name: Sparse checkout only manifests
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/ci-config/k3d
-          sparse-checkout-cone-mode: false
-          fetch-depth: 1
-          path: k3d
+      - uses: actions/checkout@v4
+      # - name: Sparse checkout only manifests
+      #   uses: actions/checkout@v4
+      #   with:
+      #     sparse-checkout: .github/ci-config/k3d
+      #     sparse-checkout-cone-mode: false
+      #     fetch-depth: 1
+      #     path: k3d
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -514,15 +515,15 @@ jobs:
           pattern: artifacts-linux-amd64
           merge-multiple: true
 
-      - name: Make binary globally accessible
-        run: |
-          chmod +x bin/kubetail
-          mv bin/kubetail /usr/local/bin/kubetail
+      # - name: Make binary globally accessible
+      #   run: |
+      #     chmod +x bin/kubetail
+      #     mv bin/kubetail /usr/local/bin/kubetail
 
       - name: Setup k3s cluster using k3d
         uses: AbsaOSS/k3d-action@v2
         with:
-          cluster-name: "kubetail-test-cluster"
+          cluster-name: 'kubetail-test-cluster'
           args: --agents 1
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
@@ -530,16 +531,6 @@ jobs:
           version: v1.33.1
 
       - name: Test the kubetail logs command
-        working-directory: k3d/.github/ci-config/k3d
         run: |
-          ls -la 
-          # waiting for the nodes to be ready and results in error if it takes more than 60s  
-          kubectl wait --for=condition=Ready nodes --all --timeout=60s
-          kubectl apply -f log-demo.yaml
-          kubectl wait --for=condition=available deployment/log-demo --timeout=60s
-          sleep 5
-
-          # testing kubetail logs command
-          OUTPUT=$(kubetail logs deployments/log-demo)
-          echo "$OUTPUT"
-          echo "$OUTPUT" | grep -q "Kubetail test logs from deployment log-demo" && echo "✅ Test Passed" || (echo "❌ Test Failed" && exit 1)
+          ls -la ./bin
+          make e2e-test

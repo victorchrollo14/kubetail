@@ -18,8 +18,6 @@ spec:
       containers:
         - name: log-demo
           image: busybox
-          command: ["/bin/sh", "-c"]
+          command: ['/bin/sh', '-c']
           args:
-            [
-              "while true; do echo 'Kubetail test logs from deployment log-demo'; sleep 2; done",
-            ]
+            ["echo 'Kubetail test logs from deployment log-demo'; sleep 3600;"]
