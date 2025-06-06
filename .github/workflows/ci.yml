@@ -60,7 +60,6 @@ jobs:
 
       - name: Test the kubetail logs command
         run: |
-          ls -la ./bin
           make e2e-test
 
     # crates-build:
