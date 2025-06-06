@@ -537,6 +537,7 @@ jobs:
           kubectl wait --for=condition=Ready nodes --all --timeout=60s
           kubectl apply -f log-demo.yaml
           kubectl wait --for=condition=available deployment/log-demo --timeout=60s
+          sleep 5
 
           # testing kubetail logs command
           OUTPUT=$(kubetail logs deployments/log-demo)
