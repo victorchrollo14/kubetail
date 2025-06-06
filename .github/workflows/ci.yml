@@ -542,4 +542,4 @@ jobs:
           # testing kubetail logs command
           OUTPUT=$(kubetail logs deployments/log-demo)
           echo "$OUTPUT"
-          echo "$OUTPUT" | grep -q "Kubetail test logs from pod log-demo" && echo "✅ Test Passed" || (echo "❌ Test Failed" && exit 1)
+          echo "$OUTPUT" | grep -q "Kubetail test logs from deployment log-demo" && echo "✅ Test Passed" || (echo "❌ Test Failed" && exit 1)
