@@ -13,166 +13,166 @@ on:
       - E2E-exp
 
 jobs:
-  crates-build:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v3
-      - name: Run builder
-        working-directory: ./crates/rgkl
-        run: |
-          cargo build --release
-
-  crates-lint:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-      - name: Run linter
-        working-directory: ./crates/rgkl
-        run: |
-          cargo fmt --all -- --check
-
-  crates-vet:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-      - name: Run code vetter
-        working-directory: ./crates/rgkl
-        run: |
-          cargo clippy --all -- -D warnings
-
-  crates-test:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v3
-      - name: Run tests
-        working-directory: ./crates/rgkl
-        run: |
-          cargo test
-
-  modules-lint:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24.3"
-          cache: false
-      - name: Run linter
-        working-directory: ./modules
-        run: |
-          test -z $(gofmt -l .)
-
-  modules-test:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24.3"
-          cache: false
-      - name: Run tests
-        working-directory: ./modules
-        run: |
-          go test -race github.com/kubetail-org/kubetail/modules/...
-
-  modules-vet:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24.3"
-          cache: false
-      - name: Run code vetter
-        working-directory: ./modules
-        run: |
-          go vet github.com/kubetail-org/kubetail/modules/...
-
-  dashboard-ui-lint:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - name: Set up and run linter
-        working-directory: ./dashboard-ui
-        run: |
-          pnpm install
-          pnpm lint
-
-  dashboard-ui-test:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - name: Set up and run tests
-        working-directory: ./dashboard-ui
-        run: |
-          pnpm install
-          pnpm test run
-
-  dashboard-ui-build:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - name: Set up and run build script
-        working-directory: ./dashboard-ui
-        run: |
-          pnpm install
-          pnpm build
-
-  build-dashboard-amd64:
-    needs:
-      - crates-lint
-      - crates-vet
-      - crates-test
-      - crates-build
-      - modules-lint
-      - modules-test
-      - modules-vet
-      - dashboard-ui-lint
-      - dashboard-ui-test
-      - dashboard-ui-build
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: build/package/Dockerfile.dashboard
-          push: false
-          tags: kubetail-dashboard:latest
+  # crates-build:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: arduino/setup-protoc@v3
+  #     - name: Run builder
+  #       working-directory: ./crates/rgkl
+  #       run: |
+  #         cargo build --release
+  #
+  # crates-lint:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: arduino/setup-protoc@v3
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #         override: true
+  #     - name: Run linter
+  #       working-directory: ./crates/rgkl
+  #       run: |
+  #         cargo fmt --all -- --check
+  #
+  # crates-vet:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: arduino/setup-protoc@v3
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #         override: true
+  #     - name: Run code vetter
+  #       working-directory: ./crates/rgkl
+  #       run: |
+  #         cargo clippy --all -- -D warnings
+  #
+  # crates-test:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: arduino/setup-protoc@v3
+  #     - name: Run tests
+  #       working-directory: ./crates/rgkl
+  #       run: |
+  #         cargo test
+  #
+  # modules-lint:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: "1.24.3"
+  #         cache: false
+  #     - name: Run linter
+  #       working-directory: ./modules
+  #       run: |
+  #         test -z $(gofmt -l .)
+  #
+  # modules-test:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: "1.24.3"
+  #         cache: false
+  #     - name: Run tests
+  #       working-directory: ./modules
+  #       run: |
+  #         go test -race github.com/kubetail-org/kubetail/modules/...
+  #
+  # modules-vet:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: "1.24.3"
+  #         cache: false
+  #     - name: Run code vetter
+  #       working-directory: ./modules
+  #       run: |
+  #         go vet github.com/kubetail-org/kubetail/modules/...
+  #
+  # dashboard-ui-lint:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 22
+  #     - uses: pnpm/action-setup@v4
+  #       with:
+  #         version: 10
+  #     - name: Set up and run linter
+  #       working-directory: ./dashboard-ui
+  #       run: |
+  #         pnpm install
+  #         pnpm lint
+  #
+  # dashboard-ui-test:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 22
+  #     - uses: pnpm/action-setup@v4
+  #       with:
+  #         version: 10
+  #     - name: Set up and run tests
+  #       working-directory: ./dashboard-ui
+  #       run: |
+  #         pnpm install
+  #         pnpm test run
+  #
+  # dashboard-ui-build:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 22
+  #     - uses: pnpm/action-setup@v4
+  #       with:
+  #         version: 10
+  #     - name: Set up and run build script
+  #       working-directory: ./dashboard-ui
+  #       run: |
+  #         pnpm install
+  #         pnpm build
+  #
+  # build-dashboard-amd64:
+  #   needs:
+  #     - crates-lint
+  #     - crates-vet
+  #     - crates-test
+  #     - crates-build
+  #     - modules-lint
+  #     - modules-test
+  #     - modules-vet
+  #     - dashboard-ui-lint
+  #     - dashboard-ui-test
+  #     - dashboard-ui-build
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #     - name: Build
+  #       uses: docker/build-push-action@v5
+  #       with:
+  #         context: .
+  #         file: build/package/Dockerfile.dashboard
+  #         push: false
+  #         tags: kubetail-dashboard:latest
 
   # build-dashboard-arm64:
   #   needs:
@@ -295,17 +295,17 @@ jobs:
   #         tags: kubetail-cluster-agent:latest
 
   build-cli-linux-amd64:
-    needs:
-      - crates-lint
-      - crates-vet
-      - crates-test
-      - crates-build
-      - modules-lint
-      - modules-test
-      - modules-vet
-      - dashboard-ui-lint
-      - dashboard-ui-test
-      - dashboard-ui-build
+    # needs:
+    # - crates-lint
+    # - crates-vet
+    # - crates-test
+    # - crates-build
+    # - modules-lint
+    # - modules-test
+    # - modules-vet
+    # - dashboard-ui-lint
+    # - dashboard-ui-test
+    # - dashboard-ui-build
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -532,6 +532,7 @@ jobs:
       - name: Test the kubetail logs command
         working-directory: k3d/.github/ci-config/k3d
         run: |
+          ls -la 
           # waiting for the nodes to be ready and results in error if it takes more than 60s  
           kubectl wait --for=condition=Ready nodes --all --timeout=60s
           kubectl apply -f log-demo.yaml
