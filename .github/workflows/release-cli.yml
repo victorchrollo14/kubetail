@@ -194,9 +194,9 @@ jobs:
           CLI_VER='${{ steps.tagName.outputs.tag }}'
           IFS='-' read -ra parts <<< "${CLI_VER}"
           VERSION="${parts[0]}" 
-          RELEASE="${parts[0]}"
-          echo VERSION
-          echo RELEASE 
+          RELEASE="${parts[1]}"
+          echo $VERSION
+          echo $RELEASE 
           ARCH='${{ matrix.pkgArch }}'
           rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${VERSION}" --define "dist ${RELEASE}"
       - name: Calculate sha256 checksum
