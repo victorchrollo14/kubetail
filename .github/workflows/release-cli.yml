@@ -16,9 +16,9 @@ jobs:
         os:
           - ubuntu-24.04
           - ubuntu-24.04-arm
-          - macos-latest
-          - macos-13
-          - windows-latest
+          # - macos-latest
+          # - macos-13
+          # - windows-latest
         include:
           - os: ubuntu-24.04
             GOOS: linux
@@ -26,18 +26,18 @@ jobs:
           - os: ubuntu-24.04-arm
             GOOS: linux
             GOARCH: arm64
-          - os: macos-latest
-            GOOS: darwin
-            GOARCH: arm64
-          - os: macos-13
-            GOOS: darwin
-            GOARCH: amd64
-          - os: windows-latest
-            GOOS: windows
-            GOARCH: amd64
-          - os: windows-11-arm
-            GOOS: windows
-            GOARCH: arm64
+          # - os: macos-latest
+          #   GOOS: darwin
+          #   GOARCH: arm64
+          # - os: macos-13
+          #   GOOS: darwin
+          #   GOARCH: amd64
+          # - os: windows-latest
+          #   GOOS: windows
+          #   GOARCH: amd64
+          # - os: windows-11-arm
+          #   GOOS: windows
+          #   GOARCH: arm64
     runs-on: ${{ matrix.os }}
     outputs:
       artifacts: ${{ steps.upload.outputs.artifact-names }}
@@ -214,19 +214,19 @@ jobs:
           name: artifacts-${{ matrix.arch }}-rpm
           path: rpm-output/*
 
-  release:
-    name: Create GitHub release
-    needs: [build, package-deb]
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: bin
-          pattern: artifacts-*
-          merge-multiple: true
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: bin/*
-          draft: true
+  # release:
+  #   name: Create GitHub release
+  #   needs: [build, package-deb]
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: bin
+  #         pattern: artifacts-*
+  #         merge-multiple: true
+  #     - name: Create release
+  #       uses: softprops/action-gh-release@v2
+  #       with:
+  #         files: bin/*
+  #         draft: true
