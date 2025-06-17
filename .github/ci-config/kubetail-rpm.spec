@@ -21,7 +21,7 @@ chronological timeline, delivered to your browser or terminal.
 
 %install
 mkdir -p %{buildroot}%{_bindir}
-install -m 755 %{_sourcedir}/%{name}-%{version}/kubetail %{buildroot}%{_bindir}/%{name}
+install -m 755 %{_sourcedir}/%{name}-%{version}%{?-dist}/kubetail %{buildroot}%{_bindir}/%{name}
 
 %files
 %{_bindir}/%{name}
