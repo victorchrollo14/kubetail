@@ -184,7 +184,7 @@ jobs:
           cp .github/ci-config/kubetail-rpm.spec ~/rpmbuild/SPECS/kubetail.spec
       - name: Create tarball for the binary
         run: |
-          CLI_VER='${{ steps.tagName.outputs.tag }}'
+          CLI_VER='${{ steps.tagName.outputs.tag }}' 
           mkdir -p ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
           mv bin/kubetail ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
           cd ~/rpmbuild/SOURCES
@@ -192,8 +192,13 @@ jobs:
       - name: Build RPM package
         run: |
           CLI_VER='${{ steps.tagName.outputs.tag }}'
+          IFS='-' read -ra parts <<< "${CLI_VER}"
+          VERSION="${parts[0]}" 
+          RELEASE="${parts[0]}"
+          echo VERSION
+          echo RELEASE 
           ARCH='${{ matrix.pkgArch }}'
-          rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${CLI_VER}"
+          rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${VERSION}" --define "dist ${RELEASE}"
       - name: Calculate sha256 checksum
         run: |
           mkdir -p rpm-output
