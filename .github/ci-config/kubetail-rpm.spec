@@ -17,11 +17,11 @@ chronological timeline, delivered to your browser or terminal.
 
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{version}%{?dist:-%{dist}}
 
 %install
 mkdir -p %{buildroot}%{_bindir}
-install -m 755 %{_sourcedir}/%{name}-%{version}/kubetail %{buildroot}%{_bindir}/%{name}
+install -m 755 %{_sourcedir}/%{name}-%{version}%{?dist:-%{dist}}/kubetail %{buildroot}%{_bindir}/%{name}
 
 %files
 %{_bindir}/%{name}
