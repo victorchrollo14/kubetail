@@ -182,23 +182,36 @@ jobs:
         run: |
           mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
           cp .github/ci-config/kubetail-rpm.spec ~/rpmbuild/SPECS/kubetail.spec
+      - name: Extract the release and version for rpm
+        id: rpmBuildInfo
+        run: |
+          CLI_VER='${{ steps.tagName.outputs.tag }}'
+          if [[ "$CLI_VER" == *"-"* ]]; then
+            # Handle pre-release versions like "0.7.1-rc1"
+            IFS='-' read -ra parts <<< "${CLI_VER}"
+            VERSION="${parts[0]}" 
+            RELEASE="0.${parts[1]}.1"
+          else
+            # Handle stable versions like "0.7.1" - always set release to "1"
+            VERSION="${CLI_VER}"
+            RELEASE="1"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release=$RELEASE" >> $GITHUB_OUTPUT
+
       - name: Create tarball for the binary
         run: |
-          CLI_VER='${{ steps.tagName.outputs.tag }}' 
+          CLI_VER='${{steps.rpmBuildInfo.version}}' 
           mkdir -p ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
           mv bin/kubetail ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
           cd ~/rpmbuild/SOURCES
           tar czf "kubetail-${CLI_VER}.tar.gz" "kubetail-${CLI_VER}/"
       - name: Build RPM package
         run: |
-          CLI_VER='${{ steps.tagName.outputs.tag }}'
-          IFS='-' read -ra parts <<< "${CLI_VER}"
-          VERSION="${parts[0]}" 
-          RELEASE="${parts[1]}"
-          echo $VERSION
-          echo $RELEASE 
+          VERSION='${{ steps.rpmBuildInfo.version }}' 
+          RELEASE='${{ steps.rpmBuildInfo.release }}'
           ARCH='${{ matrix.pkgArch }}'
-          rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${VERSION}" --define "dist ${RELEASE}"
+          rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${VERSION}" --define "release ${RELEASE}"
       - name: Calculate sha256 checksum
         run: |
           mkdir -p rpm-output

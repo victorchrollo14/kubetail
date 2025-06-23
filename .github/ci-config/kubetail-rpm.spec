@@ -1,11 +1,11 @@
-Name:           kubetail 
+Name:           kubetail
 Version:        %{version} 
-Release:        1%{?dist}
+Release:        %{release}%{?dist}
 Summary:        Real-time logging dashboard for Kubernetes 
 
 License:        Apache-2.0
 URL:            https://github.com/kubetail-org/kubetail
-Source0:        %{name}-%{version}-%{dist}.tar.gz
+Source0:        %{name}-%{version}.tar.gz
 
 
 %description
@@ -17,11 +17,11 @@ chronological timeline, delivered to your browser or terminal.
 
 
 %prep
-%setup -q -n %{name}-%{version}%{?dist:-%{dist}}
+%setup -q
 
 %install
 mkdir -p %{buildroot}%{_bindir}
-install -m 755 %{_sourcedir}/%{name}-%{version}%{?dist:-%{dist}}/kubetail %{buildroot}%{_bindir}/%{name}
+install -m 755 %{_sourcedir}/%{name}-%{version}/kubetail %{buildroot}%{_bindir}/%{name}
 
 %files
 %{_bindir}/%{name}
