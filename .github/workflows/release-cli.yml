@@ -201,15 +201,15 @@ jobs:
 
       - name: Create tarball for the binary
         run: |
-          CLI_VER='${{steps.rpmBuildInfo.version}}' 
+          CLI_VER='${{steps.rpmBuildInfo.outputs.version}}' 
           mkdir -p ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
           mv bin/kubetail ~/rpmbuild/SOURCES/kubetail-${CLI_VER}
           cd ~/rpmbuild/SOURCES
           tar czf "kubetail-${CLI_VER}.tar.gz" "kubetail-${CLI_VER}/"
       - name: Build RPM package
         run: |
-          VERSION='${{ steps.rpmBuildInfo.version }}' 
-          RELEASE='${{ steps.rpmBuildInfo.release }}'
+          VERSION='${{ steps.rpmBuildInfo.outputs.version }}' 
+          RELEASE='${{ steps.rpmBuildInfo.outputs.release }}'
           ARCH='${{ matrix.pkgArch }}'
           rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${VERSION}" --define "release ${RELEASE}"
       - name: Calculate sha256 checksum
