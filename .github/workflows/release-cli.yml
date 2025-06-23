@@ -214,9 +214,13 @@ jobs:
           rpmbuild -ba --target "${ARCH}" ~/rpmbuild/SPECS/kubetail.spec --define "version ${VERSION}" --define "release ${RELEASE}"
       - name: Calculate sha256 checksum
         run: |
+          VERSION='${{ steps.rpmBuildInfo.outputs.version }}' 
+          RELEASE='${{ steps.rpmBuildInfo.outputs.release }}'
+
           mkdir -p rpm-output
-          FILE_NAME=kubetail-${{ steps.tagName.outputs.tag }}-1.${{ matrix.pkgArch }}.rpm
+          FILE_NAME="kubetail-$VERSION-$RELEASE.${{ matrix.pkgArch }}.rpm"
           FILE_NEW_NAME=kubetail-${{ steps.tagName.outputs.tag }}-1.${{ matrix.arch }}.rpm # renaming arch to arm64 and amd64
+
           mv ~/rpmbuild/RPMS/'${{ matrix.pkgArch }}'/"${FILE_NAME}" ./rpm-output/"${FILE_NEW_NAME}"
           FILE=./rpm-output/"${FILE_NEW_NAME}"
           OUTPUT_FILE="${FILE}".sha256
