@@ -41,6 +41,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	gqlerrors "github.com/kubetail-org/kubetail/modules/shared/graphql/errors"
+	"github.com/kubetail-org/kubetail/modules/shared/helm"
 
 	"github.com/kubetail-org/kubetail/modules/dashboard/graph/model"
 	clusterapi "github.com/kubetail-org/kubetail/modules/dashboard/internal/cluster-api"
@@ -48,7 +49,18 @@ import (
 
 // helmReleaseGetter is an interface for getting a Helm release by name and namespace.
 type helmReleaseGetter interface {
-	GetRelease(namespace, releaseName string) (*release.Release, error)
+	GetReleaseForContext(kubeContext, namespace, releaseName string) (*release.Release, error)
+}
+
+// defaultHelmReleaseGetter implements helmReleaseGetter by creating a new
+// helm client per request, scoped to the given kubeContext.
+type defaultHelmReleaseGetter struct {
+	kubeconfigPath string
+}
+
+func (g *defaultHelmReleaseGetter) GetReleaseForContext(kubeContext, namespace, releaseName string) (*release.Release, error) {
+	client := helm.NewClient(helm.WithKubeconfigPath(g.kubeconfigPath), helm.WithKubeContext(kubeContext))
+	return client.GetRelease(namespace, releaseName)
 }
 
 // Represents response from fetchListResource()

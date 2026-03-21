@@ -34,14 +34,20 @@ import (
 	"github.com/kubetail-org/kubetail/modules/dashboard/pkg/config"
 )
 
-// mockHelmReleaseGetter implements helmReleaseGetter for testing.
-type mockHelmReleaseGetter struct {
-	release *release.Release
-	err     error
+// MockHelmReleaseGetter implements helmReleaseGetter for testing.
+type MockHelmReleaseGetter struct {
+	mock.Mock
 }
 
-func (m *mockHelmReleaseGetter) GetRelease(namespace, releaseName string) (*release.Release, error) {
-	return m.release, m.err
+func (m *MockHelmReleaseGetter) GetReleaseForContext(kubeContext, namespace, releaseName string) (*release.Release, error) {
+	ret := m.Called(kubeContext, namespace, releaseName)
+
+	var r0 *release.Release
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*release.Release)
+	}
+
+	return r0, ret.Error(1)
 }
 
 func makeRelease(name, version string) *release.Release {
@@ -389,14 +395,18 @@ func TestClusterVersionStatus_DesktopMode(t *testing.T) {
 				vc.On("GetLatestHelmChartVersion").Return(&versioncheck.VersionInfo{Version: tt.latestVersion}, nil)
 			}
 
+			cm := &k8shelpersmock.MockConnectionManager{}
+			cm.On("DerefKubeContext", mock.Anything).Return("")
+
+			hg := &MockHelmReleaseGetter{}
+			hg.On("GetReleaseForContext", mock.Anything, mock.Anything, mock.Anything).Return(tt.release, tt.getErr)
+
 			r := &queryResolver{&Resolver{
-				cfg:            &config.Config{},
-				environment:    sharedcfg.EnvironmentDesktop,
-				versionChecker: vc,
-				helmReleaseGetter: &mockHelmReleaseGetter{
-					release: tt.release,
-					err:     tt.getErr,
-				},
+				cfg:               &config.Config{},
+				cm:                cm,
+				environment:       sharedcfg.EnvironmentDesktop,
+				versionChecker:    vc,
+				helmReleaseGetter: hg,
 			}}
 
 			result, err := r.ClusterVersionStatus(context.Background(), nil)

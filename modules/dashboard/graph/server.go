@@ -28,7 +28,6 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/kubetail-org/kubetail/modules/shared/graphql/directives"
-	"github.com/kubetail-org/kubetail/modules/shared/helm"
 	"github.com/kubetail-org/kubetail/modules/shared/k8shelpers"
 	"github.com/kubetail-org/kubetail/modules/shared/versioncheck"
 
@@ -61,7 +60,7 @@ func NewServer(cfg *config.Config, cm k8shelpers.ConnectionManager) *Server {
 		environment:       cfg.Environment,
 		allowedNamespaces: cfg.AllowedNamespaces,
 		versionChecker:    versioncheck.NewChecker(),
-		helmReleaseGetter: helm.NewClient(helm.WithKubeconfigPath(cfg.KubeconfigPath)),
+		helmReleaseGetter: &defaultHelmReleaseGetter{kubeconfigPath: cfg.KubeconfigPath},
 	}
 
 	// Init config

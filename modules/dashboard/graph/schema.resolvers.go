@@ -565,8 +565,9 @@ func (r *queryResolver) ClusterVersionStatus(ctx context.Context, kubeContext *s
 	var currentVersion string
 
 	if r.environment == sharedcfg.EnvironmentDesktop {
-		// Desktop mode: get the kubetail release from kubetail-system namespace
-		rel, err := r.helmReleaseGetter.GetRelease(helm.DefaultNamespace, helm.DefaultReleaseName)
+		// Desktop mode: get the kubetail release from kubetail-system namespace for the active kubeContext
+		kubeContextVal := r.cm.DerefKubeContext(kubeContext)
+		rel, err := r.helmReleaseGetter.GetReleaseForContext(kubeContextVal, helm.DefaultNamespace, helm.DefaultReleaseName)
 		if err != nil || rel == nil {
 			return nil, nil
 		}
