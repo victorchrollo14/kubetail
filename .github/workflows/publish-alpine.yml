@@ -23,7 +23,7 @@ on:
 jobs:
   config:
     name: Configure workflow
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     outputs:
       version: ${{ steps.config.outputs.version }}
       dry_run: ${{ steps.config.outputs.dry_run }}
