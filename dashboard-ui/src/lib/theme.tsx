@@ -109,12 +109,26 @@ export function ThemeProvider({ children }: React.PropsWithChildren) {
     return () => mediaQuery.removeEventListener('change', fn);
   }, []);
 
+  // listen for theme changes from other tabs
+  useEffect(() => {
+    const fn = (ev: StorageEvent) => {
+      if (ev.key !== storageKey) return;
+
+      setUserPreference(getUserPreference());
+      setTheme(getTheme());
+    };
+
+    window.addEventListener('storage', fn);
+
+    return () => window.removeEventListener('storage', fn);
+  }, []);
+
   const context = useMemo(
     () => ({
       theme,
       userPreference,
       setUserPreference: (value: UserPreference) => {
-        // upate localStorage
+        // update localStorage
         switch (value) {
           case UserPreference.System:
             localStorage.removeItem(storageKey);
