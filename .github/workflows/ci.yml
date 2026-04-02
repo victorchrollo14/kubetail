@@ -88,6 +88,23 @@ jobs:
         working-directory: ./crates
         run: cargo test
 
+  modules-vendor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-environment
+        with:
+          setup-go: "true"
+      - name: Create vendor bundle
+        working-directory: ./modules
+        run: go work vendor
+      - name: Upload vendor bundle artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: modules-vendor-bundle
+          path: modules/vendor
+          retention-days: 1
+
   modules-lint:
     runs-on: ubuntu-24.04
     strategy:
@@ -125,6 +142,7 @@ jobs:
         run: go vet ./...
 
   modules-test:
+    needs: modules-vendor
     timeout-minutes: 20
     strategy:
       matrix:
@@ -172,15 +190,21 @@ jobs:
       - uses: ./.github/actions/setup-environment
         with:
           setup-go: "true"
+      - name: Download vendor bundle artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: modules-vendor-bundle
+          path: modules/vendor
       - name: Run tests
         working-directory: ./modules/${{ matrix.module }}
-        run: go test ./...
+        run: go test -mod=vendor ./...
       - name: Run race tests
         if: ${{ !(matrix.os == 'windows' && matrix.arch == 'arm64') }}
         working-directory: ./modules/${{ matrix.module }}
-        run: go test -race ./...
+        run: go test -race -mod=vendor ./...
 
   modules-test-riscv64:
+    needs: modules-vendor
     timeout-minutes: 60
     strategy:
       matrix:
@@ -195,9 +219,14 @@ jobs:
       - uses: ./.github/actions/setup-environment
         with:
           setup-go: "true"
+      - name: Download vendor bundle artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: modules-vendor-bundle
+          path: modules/vendor
       - name: Run tests
         working-directory: ./modules/${{ matrix.module }}
-        run: go test ./...
+        run: go test -mod=vendor ./...
 
   dashboard-ui-lint:
     runs-on: ubuntu-24.04
@@ -370,6 +399,7 @@ jobs:
       - crates-lint
       - crates-vet
       - crates-test
+      - modules-vendor
       - modules-lint
       - modules-vet
       - modules-test
@@ -410,6 +440,11 @@ jobs:
       - uses: ./.github/actions/setup-environment
         with:
           setup-go: "true"
+      - name: Download vendor bundle artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: modules-vendor-bundle
+          path: modules/vendor
       - name: Setup Alpine
         uses: jirutka/setup-alpine@v1
         with:
@@ -421,7 +456,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           GOARM: ${{ matrix.goarm }}
         run: |
-          go build -o ../../bin/kubetail .
+          go build -mod=vendor -o ../../bin/kubetail .
       - name: Verify
         shell: alpine.sh {0}
         run: |
