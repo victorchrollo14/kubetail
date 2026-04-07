@@ -1,0 +1,30 @@
+name: riscv64-post-merge-checks
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  modules-test-riscv64:
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        module:
+          - cli
+          - cluster-api
+          - dashboard
+          - shared
+    runs-on: ubuntu-24.04-riscv
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-environment
+        with:
+          setup-go: "true"
+      - name: Run tests
+        working-directory: ./modules/${{ matrix.module }}
+        run: go test ./...
