@@ -15,14 +15,14 @@
 import type { ApolloClient } from '@apollo/client';
 import deepEqual from 'fast-deep-equal';
 import { PanelLeftClose as PanelLeftCloseIcon } from 'lucide-react';
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { dashboardClient, getClusterAPIClient } from '@/apollo-client';
 import AppLayout from '@/components/layouts/AppLayout';
 import AuthRequired from '@/components/utils/AuthRequired';
 // import { FakeClient } from '@/components/widgets/log-viewer';
-import type { Client, LogViewerHandle } from '@/components/widgets/log-viewer';
+import type { LogViewerHandle } from '@/components/widgets/log-viewer';
 import type { LogSourceFilter } from '@/lib/graphql/dashboard/__generated__/graphql';
 import { useIsClusterAPIEnabled } from '@/lib/hooks';
 
@@ -38,15 +38,14 @@ import { ConfigureContainerColors, SourcesFetcher } from './helpers';
  */
 
 function useStableSourceStrings(searchParams: URLSearchParams) {
-  const sourceStringsRef = useRef<string[]>(null);
-
   const next = searchParams.getAll('source');
+  const [value, setValue] = useState(next);
 
-  if (!deepEqual(next, sourceStringsRef.current)) {
-    sourceStringsRef.current = next;
+  if (!deepEqual(next, value)) {
+    setValue(next);
   }
 
-  return sourceStringsRef.current as string[];
+  return value;
 }
 
 /**
@@ -54,8 +53,6 @@ function useStableSourceStrings(searchParams: URLSearchParams) {
  */
 
 function useStableSourceFilter(searchParams: URLSearchParams) {
-  const sourceFilterRef = useRef<LogSourceFilter>(null);
-
   const next = {
     region: searchParams.getAll('region'),
     zone: searchParams.getAll('zone'),
@@ -65,11 +62,13 @@ function useStableSourceFilter(searchParams: URLSearchParams) {
     container: searchParams.getAll('container'),
   } satisfies LogSourceFilter;
 
-  if (!deepEqual(next, sourceFilterRef.current)) {
-    sourceFilterRef.current = next;
+  const [value, setValue] = useState(next);
+
+  if (!deepEqual(next, value)) {
+    setValue(next);
   }
 
-  return sourceFilterRef.current as LogSourceFilter;
+  return value;
 }
 
 /**
@@ -161,7 +160,6 @@ export default function Page() {
   const kubeContext = searchParams.get('kubeContext');
 
   const shouldUseClusterAPI = useIsClusterAPIEnabled(kubeContext);
-  const [logServerClient, setLogServerClient] = useState<Client>();
 
   const sourceStrings = useStableSourceStrings(searchParams);
   const sourceFilter = useStableSourceFilter(searchParams);
@@ -183,8 +181,8 @@ export default function Page() {
   }, [grepVal]);
 
   // Configure log server client
-  useEffect(() => {
-    if (shouldUseClusterAPI === undefined) return;
+  const logServerClient = useMemo(() => {
+    if (shouldUseClusterAPI === undefined) return undefined;
 
     let apolloClient: ApolloClient;
     if (shouldUseClusterAPI) {
@@ -197,15 +195,13 @@ export default function Page() {
       apolloClient = dashboardClient;
     }
 
-    setLogServerClient(
-      new LogServerClient({
-        apolloClient,
-        kubeContext: kubeContext ?? '',
-        sources: sourceStrings,
-        sourceFilter,
-        grep: grep ?? undefined,
-      }),
-    );
+    return new LogServerClient({
+      apolloClient,
+      kubeContext: kubeContext ?? '',
+      sources: sourceStrings,
+      sourceFilter,
+      grep: grep ?? undefined,
+    });
   }, [shouldUseClusterAPI, kubeContext, sourceStrings, sourceFilter, grep]);
 
   const context = useMemo(

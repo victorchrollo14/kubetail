@@ -18,6 +18,7 @@ import {
   forwardRef,
   useCallback,
   useEffect,
+  useEffectEvent,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -126,9 +127,9 @@ export type Runtime = {
  * External constants
  */
 
-export const LOG_VIEWER_INITIAL_STATE = {
+export const LOG_VIEWER_INITIAL_STATE: LogViewerState = {
   isLoading: true,
-} satisfies LogViewerState;
+};
 
 /**
  * External types
@@ -153,7 +154,7 @@ export type LogViewerVirtualizer = {
   readonly range: { startIndex: number; endIndex: number } | null;
   getTotalSize: () => number;
   getVirtualRows: () => LogViewerVirtualRow[];
-  measureElement: (node: Element | null | undefined) => void;
+  measureElement: (node: Element | null) => void;
 };
 
 export type LogViewerState = {
@@ -193,11 +194,8 @@ export function useRecordStore({ recordsRef, setCount }: RecordStoreOptions): Re
     }
   }, []);
 
-  return useMemo(() => {
-    // Initialize
-    recordsRef.current = new DoubleTailedArray();
-
-    return {
+  return useMemo(
+    () => ({
       new: (records: LogRecord[], skipSetCount = false) => {
         addKeys(records);
         recordsRef.current = new DoubleTailedArray(records as LogRecordInternal[]);
@@ -230,8 +228,9 @@ export function useRecordStore({ recordsRef, setCount }: RecordStoreOptions): Re
         }
       },
       length: () => recordsRef.current?.length ?? 0,
-    };
-  }, []);
+    }),
+    [addKeys, recordsRef, setCount],
+  );
 }
 
 /**
@@ -256,6 +255,7 @@ export const useInit = ({ client, config, refs, actions, services }: Runtime) =>
             services.recordStore.new(result.records);
           }
 
+          // eslint-disable-next-line react-hooks/immutability -- refs are shared via Runtime, not truly immutable args
           refs.isAutoScrollEnabled.current = false;
 
           break;
@@ -378,7 +378,7 @@ export const useLoadMoreBefore = ({ client, config, refs, actions, services }: R
 
       await beforePaintPromise;
     }
-  }, [client, config.batchSizeRegular]);
+  }, [client, config.batchSizeRegular, refs, actions, services]);
 
 /**
  * useLoadMoreAfter - Returns stable loadMoreAfter function
@@ -399,7 +399,7 @@ export const useLoadMoreAfter = ({ client, config, actions, services }: Runtime)
     if (result.records.length) {
       services.recordStore.append(result.records);
     }
-  }, [client, config.batchSizeRegular]);
+  }, [client, config.batchSizeRegular, actions, services]);
 
 /**
  * useLoadMore - Load more hook
@@ -409,19 +409,22 @@ export const useLoadMore = (runtime: Runtime) => {
   const loadMoreBefore = useLoadMoreBefore(runtime);
   const loadMoreAfter = useLoadMoreAfter(runtime);
 
-  const { config, refs, state, services } = runtime;
+  const { config, state, services } = runtime;
 
   const virtualizerRange = services.virtualizer.range;
 
-  const countRef = useRef(state.count);
-  countRef.current = state.count;
+  // Use local refs to avoid mutating hook arguments (react-hooks/immutability)
+  const isLoadingBeforeRef = useRef(false);
+  const isLoadingAfterRef = useRef(false);
+
+  const getCount = useEffectEvent(() => state.count);
 
   useEffect(() => {
     if (!virtualizerRange || state.isLoading || state.isRemeasuring) return;
 
-    if (state.hasMoreBefore && !refs.isLoadingBefore.current) {
+    if (state.hasMoreBefore && !isLoadingBeforeRef.current) {
       if (virtualizerRange.startIndex <= config.loadMoreThreshold - config.overscan) {
-        refs.isLoadingBefore.current = true;
+        isLoadingBeforeRef.current = true;
         loadMoreBefore()
           .catch((error) => {
             // Log error but don't throw - allow the UI to continue functioning
@@ -429,15 +432,15 @@ export const useLoadMore = (runtime: Runtime) => {
           })
           .finally(() => {
             requestAnimationFrame(() => {
-              refs.isLoadingBefore.current = false;
+              isLoadingBeforeRef.current = false;
             });
           });
       }
     }
 
-    if (state.hasMoreAfter && !refs.isLoadingAfter.current) {
-      if (virtualizerRange.endIndex >= countRef.current - 1 - config.loadMoreThreshold + config.overscan) {
-        refs.isLoadingAfter.current = true;
+    if (state.hasMoreAfter && !isLoadingAfterRef.current) {
+      if (virtualizerRange.endIndex >= getCount() - 1 - config.loadMoreThreshold + config.overscan) {
+        isLoadingAfterRef.current = true;
         loadMoreAfter()
           .catch((error) => {
             // Log error and allow the UI to continue functioning
@@ -445,7 +448,7 @@ export const useLoadMore = (runtime: Runtime) => {
           })
           .finally(() => {
             requestAnimationFrame(() => {
-              refs.isLoadingAfter.current = false;
+              isLoadingAfterRef.current = false;
             });
           });
       }
@@ -459,6 +462,8 @@ export const useLoadMore = (runtime: Runtime) => {
     state.isRemeasuring,
     config.overscan,
     config.loadMoreThreshold,
+    loadMoreBefore,
+    loadMoreAfter,
   ]);
 };
 
@@ -660,7 +665,7 @@ export const LogViewerInner = ({
   const [count, setCount] = useState(0);
 
   // RecordsRef will never be null so this assertion is safe
-  const recordsRef = useRef(null) as unknown as React.RefObject<DoubleTailedArray<LogRecordInternal>>;
+  const recordsRef = useRef(new DoubleTailedArray<LogRecordInternal>());
 
   const [hasMoreBefore, setHasMoreBefore] = useState(false);
   const [hasMoreAfter, setHasMoreAfter] = useState(false);
@@ -692,6 +697,7 @@ export const LogViewerInner = ({
     });
   }, []);
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- useVirtualizer returns unmemoizable values (TanStack limitation)
   const virtualizer = useVirtualizer({
     count,
     getScrollElement: () => scrollElRef.current,
@@ -826,8 +832,8 @@ export const LogViewer = forwardRef<LogViewerHandle, LogViewerProps>(
     const [keyID, setKeyID] = useState(0);
     const incrementKeyID = useCallback(() => setKeyID((id) => id + 1), []);
 
-    const [initialPosition, setInitialPosition] = useState<LogViewerInitialPosition>(defaultInitialPosition);
-    const [isLoading, setIsLoading] = useState<boolean>(LOG_VIEWER_INITIAL_STATE.isLoading);
+    const [initialPosition, setInitialPosition] = useState(defaultInitialPosition);
+    const [isLoading, setIsLoading] = useState(LOG_VIEWER_INITIAL_STATE.isLoading);
 
     const [isRemeasuring, setIsRemeasuring] = useState(false);
     const isRemeasuringRef = useRef(false);
@@ -836,9 +842,8 @@ export const LogViewer = forwardRef<LogViewerHandle, LogViewerProps>(
     const virtualizerRef = useRef<Virtualizer<HTMLDivElement, Element> | null>(null);
 
     // Support structures for subscribe() and getSnapshot()
-    const stateRef = useRef<LogViewerState>(LOG_VIEWER_INITIAL_STATE);
-    const listenerQueueRef = useRef(null) as unknown as React.RefObject<Set<() => void>>;
-    if (!listenerQueueRef.current) listenerQueueRef.current = new Set<() => void>();
+    const stateRef = useRef(LOG_VIEWER_INITIAL_STATE);
+    const listenerQueueRef = useRef(new Set<() => void>());
     useEffect(() => {
       stateRef.current = { isLoading };
       listenerQueueRef.current.forEach((callback) => callback());
@@ -913,15 +918,13 @@ export const LogViewer = forwardRef<LogViewerHandle, LogViewerProps>(
       [],
     );
 
-    // Reset completely when client changes
-    const prevClientRef = useRef<Client>(null);
-    useEffect(() => {
-      if (prevClientRef.current && prevClientRef.current !== client) {
-        setIsLoading(true);
-        incrementKeyID();
-      }
-      prevClientRef.current = client;
-    }, [client]);
+    // Reset completely when client changes (adjust state during render)
+    const [prevClient, setPrevClient] = useState(client);
+    if (prevClient !== client) {
+      setPrevClient(client);
+      setIsLoading(true);
+      incrementKeyID();
+    }
 
     const config = useMemo(
       () => ({
@@ -989,7 +992,7 @@ export function useLogViewerState(
   dependencies: any[],
 ): LogViewerState {
   // Initialize store
-  const [store, setStore] = useState(() => createLogViewerStore(logViewerRef.current));
+  const [store, setStore] = useState(() => createLogViewerStore(null));
 
   // Update based on user-provided dependencies
   useEffect(() => {

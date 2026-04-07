@@ -57,27 +57,23 @@ const LoadingOverlay = () => (
 
 function useStableInitialPosition(): LogViewerInitialPosition {
   const { search } = useLocation();
-  const initialPositionRef = useRef<LogViewerInitialPosition>(DEFAULT_INITIAL_POSITION);
-  const isInitializedRef = useRef(false);
 
-  if (!isInitializedRef.current) {
-    isInitializedRef.current = true;
+  const [initialPosition] = useState(() => {
     const searchParams = new URLSearchParams(search);
     switch (searchParams.get('mode')) {
       case 'head':
-        initialPositionRef.current = { type: 'head' };
-        break;
+        return { type: 'head' } as LogViewerInitialPosition;
       case 'cursor': {
         const cursor = searchParams.get('cursor');
-        if (cursor !== null) initialPositionRef.current = { type: 'cursor', cursor };
-        break;
+        if (cursor !== null) return { type: 'cursor', cursor } as LogViewerInitialPosition;
+        return DEFAULT_INITIAL_POSITION;
       }
       default:
-        break;
+        return DEFAULT_INITIAL_POSITION;
     }
-  }
+  });
 
-  return initialPositionRef.current;
+  return initialPosition;
 }
 
 /**
@@ -95,11 +91,8 @@ function useMeasureWidths() {
   const [widths, setWidths] = useState(newDefaultWidths);
   const [triggerID, setTriggerID] = useState(0);
 
-  const pendingRef = useRef(null) as unknown as React.RefObject<typeof widths>;
-  if (!pendingRef.current) pendingRef.current = newDefaultWidths();
-
-  const measuredRef = useRef(null) as unknown as React.RefObject<WeakSet<Element>>;
-  if (!measuredRef.current) measuredRef.current = new WeakSet<Element>();
+  const pendingRef = useRef(newDefaultWidths());
+  const measuredRef = useRef(new WeakSet<Element>());
 
   const rafIDRef = useRef<number | null>(null);
 
@@ -378,7 +371,7 @@ type RecordRowProps = {
   isWrap: boolean;
   maxRowWidth: number;
   colWidths: Map<ViewerColumn, number>;
-  measureElement: (node: Element | null | undefined) => void;
+  measureElement: (node: Element | null) => void;
   measureRowElement: (el: HTMLDivElement | null) => void;
   measureCellElement: (el: HTMLDivElement | null) => void;
 };

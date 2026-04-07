@@ -143,7 +143,7 @@ type TableCellProps = {
 const SizeTableCell = ({ table, row }: TableCellProps) => {
   const meta = table.options.meta as WorkloadTableMeta;
 
-  const ids = useMemo(() => [row.original.id], []);
+  const ids = useMemo(() => [row.original.id], [row.original.id]);
   const logFileInfo = useLogFileInfo(meta.kubeContext, ids);
 
   const info = logFileInfo.get(row.original.id);
@@ -155,7 +155,7 @@ const SizeTableCell = ({ table, row }: TableCellProps) => {
 const LastModifiedAtTableCell = ({ table, row }: TableCellProps) => {
   const meta = table.options.meta as WorkloadTableMeta;
 
-  const ids = useMemo(() => [row.original.id], []);
+  const ids = useMemo(() => [row.original.id], [row.original.id]);
   const logFileInfo = useLogFileInfo(meta.kubeContext, ids);
 
   const info = logFileInfo.get(row.original.id);
@@ -349,7 +349,7 @@ const DisplayWorkloadItems = memo(({ kind }: DisplayWorkloadItemsProps) => {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
 
   const [selectAll, setSelectAll] = useState(false);
-  const [isChecked, setIsChecked] = useState<Map<string, boolean>>(new Map());
+  const [isChecked, setIsChecked] = useState(new Map<string, boolean>());
 
   const handleSelectAllChange = useCallback(() => {
     const newValue = !selectAll;
@@ -418,6 +418,7 @@ const DisplayWorkloadItems = memo(({ kind }: DisplayWorkloadItemsProps) => {
     [data, meta, sorting, isClusterAPIEnabled, showAll, numItems, maxDisplayRows, setSorting],
   );
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- useReactTable returns unmemoizable values (TanStack limitation)
   const table = useReactTable(tableCfg as TableOptions<WorkloadTableData>);
 
   // For label
