@@ -316,6 +316,7 @@ const HeaderRow = ({
           minWidth: isWrap ? '100%' : maxRowWidth || '100%',
         }}
       >
+        <div data-col-id="Pos" />
         {[...visibleCols].map((col) => {
           const minWidth = isWrap && col === ViewerColumn.Message ? undefined : colWidths.get(col);
           return (
@@ -411,6 +412,34 @@ export const RecordRow = memo(
     onRowClick,
   }: RecordRowProps) => {
     const els: React.ReactElement[] = [];
+
+    // Pos column (always first, acts as row selector)
+    els.push(
+      <div
+        key="__pos__"
+        data-col-id="Pos"
+        role="button"
+        tabIndex={0}
+        className={cn(
+          isSelected && 'bg-blue-500/10 dark:bg-blue-500/15',
+          !isSelected && row.index % 2 !== 0 && 'bg-chrome-100',
+          row.key === 0 && 'border-l-2 border-green-500 font-extrabold',
+          row.key !== 0 && 'text-chrome-800',
+          'whitespace-nowrap tabular-nums text-[0.65rem] text-center pr-1.5 cursor-pointer select-none outline-none',
+        )}
+        onClick={(e) => onRowClick(row.key, e)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onRowClick(row.key, e as unknown as React.MouseEvent);
+          }
+        }}
+      >
+        {row.key !== 0 && <span className="text-chrome-300 text-[0.9rem]">{row.key > 0 ? '+' : '-'}</span>}
+        {Math.abs(row.key)}
+      </div>,
+    );
+
     visibleCols.forEach((col) => {
       const minWidth = isWrap && col === ViewerColumn.Message ? undefined : colWidths.get(col);
       const shouldWrap = isWrap && col === ViewerColumn.Message;
@@ -429,42 +458,18 @@ export const RecordRow = memo(
         shouldWrap ? 'whitespace-pre-wrap wrap-break-word' : 'whitespace-nowrap',
       );
 
-      if (isTimestamp) {
-        els.push(
-          <CellContextMenu key={col} col={col} record={row.record}>
-            <div
-              ref={measureCellElement}
-              data-col-id={col}
-              role="button"
-              tabIndex={0}
-              className={cn(cellClassName, 'cursor-pointer select-none outline-none')}
-              style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
-              onClick={(e) => onRowClick(row.key, e)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onRowClick(row.key, e as unknown as React.MouseEvent);
-                }
-              }}
-            >
-              {getAttribute(row.record, col)}
-            </div>
-          </CellContextMenu>,
-        );
-      } else {
-        els.push(
-          <CellContextMenu key={col} col={col} record={row.record}>
-            <div
-              ref={measureCellElement}
-              data-col-id={col}
-              className={cellClassName}
-              style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
-            >
-              {getAttribute(row.record, col)}
-            </div>
-          </CellContextMenu>,
-        );
-      }
+      els.push(
+        <CellContextMenu key={col} col={col} record={row.record}>
+          <div
+            ref={measureCellElement}
+            data-col-id={col}
+            className={cellClassName}
+            style={minWidth ? { minWidth: `${minWidth}px` } : undefined}
+          >
+            {getAttribute(row.record, col)}
+          </div>
+        </CellContextMenu>,
+      );
     });
 
     return (
@@ -536,8 +541,8 @@ export const Main = () => {
   // Generate grid template
   const gridTemplate = useMemo(
     () =>
-      // Keep natural sizing - let cells determine column width
-      [...visibleCols].map((col) => (col === ViewerColumn.Message ? '1fr' : 'auto')).join(' '),
+      // Key column (auto) + visible columns
+      `3rem ${[...visibleCols].map((col) => (col === ViewerColumn.Message ? '1fr' : 'auto')).join(' ')}`,
     [visibleCols],
   );
 
