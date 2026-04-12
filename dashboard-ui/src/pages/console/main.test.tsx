@@ -197,13 +197,16 @@ describe('Main', () => {
       isSelectionBottom: false,
       maxRowWidth: 500,
       colWidths: new Map<ViewerColumn, number>(),
-      selectedCellCol: null as ViewerColumn | null,
+      selectedCellCols: undefined as Set<ViewerColumn> | undefined,
+      selectedCellColsAbove: undefined as Set<ViewerColumn> | undefined,
+      selectedCellColsBelow: undefined as Set<ViewerColumn> | undefined,
+      isCursorText: true,
       isCellTextSelectable: false,
       measureElement: vi.fn(),
       measureRowElement: vi.fn(),
       measureCellElement: vi.fn(),
       onRowMouseDown: vi.fn(),
-      onCellClick: vi.fn(),
+      onCellMouseDown: vi.fn(),
     };
 
     it('calls onRowMouseDown when mousedown on the pos cell', () => {
@@ -214,20 +217,20 @@ describe('Main', () => {
       expect(defaultProps.onRowMouseDown).toHaveBeenCalledWith(0, expect.any(Object));
     });
 
-    it('calls onCellClick when clicking the timestamp cell', () => {
-      const onCellClick = vi.fn();
-      render(<RecordRow {...defaultProps} onCellClick={onCellClick} />);
+    it('calls onCellMouseDown when mousedown on the timestamp cell', () => {
+      const onCellMouseDown = vi.fn();
+      render(<RecordRow {...defaultProps} onCellMouseDown={onCellMouseDown} />);
       const timestampCell = screen.getByText(/Jun 15, 2024/);
-      fireEvent.click(timestampCell);
-      expect(onCellClick).toHaveBeenCalledWith(0, ViewerColumn.Timestamp, expect.any(Object));
+      fireEvent.mouseDown(timestampCell);
+      expect(onCellMouseDown).toHaveBeenCalledWith(0, ViewerColumn.Timestamp, expect.any(Object));
     });
 
-    it('calls onCellClick when clicking the message cell', () => {
-      const onCellClick = vi.fn();
-      render(<RecordRow {...defaultProps} onCellClick={onCellClick} />);
+    it('calls onCellMouseDown when mousedown on the message cell', () => {
+      const onCellMouseDown = vi.fn();
+      render(<RecordRow {...defaultProps} onCellMouseDown={onCellMouseDown} />);
       const messageCell = screen.getByText('test message');
-      fireEvent.click(messageCell);
-      expect(onCellClick).toHaveBeenCalledWith(0, ViewerColumn.Message, expect.any(Object));
+      fireEvent.mouseDown(messageCell);
+      expect(onCellMouseDown).toHaveBeenCalledWith(0, ViewerColumn.Message, expect.any(Object));
     });
 
     it('does not call onRowMouseDown when clicking the row background', () => {
@@ -268,41 +271,30 @@ describe('Main', () => {
       isSelectionBottom: false,
       maxRowWidth: 500,
       colWidths: new Map<ViewerColumn, number>(),
-      selectedCellCol: null as ViewerColumn | null,
+      selectedCellCols: undefined as Set<ViewerColumn> | undefined,
+      selectedCellColsAbove: undefined as Set<ViewerColumn> | undefined,
+      selectedCellColsBelow: undefined as Set<ViewerColumn> | undefined,
+      isCursorText: true,
       isCellTextSelectable: false,
       measureElement: vi.fn(),
       measureRowElement: vi.fn(),
       measureCellElement: vi.fn(),
       onRowMouseDown: vi.fn(),
-      onCellClick: vi.fn(),
+      onCellMouseDown: vi.fn(),
     };
 
-    it('sets userSelect to auto on mousedown of selected cell', () => {
-      render(<RecordRow {...defaultProps} selectedCellCol={ViewerColumn.Message} />);
-      const messageCell = document.querySelector('[data-col-id="Message"]') as HTMLElement;
-      fireEvent.mouseDown(messageCell);
-      expect(messageCell.style.userSelect).toBe('auto');
-    });
-
-    it('does not set userSelect on mousedown of unselected cell', () => {
-      render(<RecordRow {...defaultProps} />);
-      const messageCell = document.querySelector('[data-col-id="Message"]') as HTMLElement;
-      fireEvent.mouseDown(messageCell);
-      expect(messageCell.style.userSelect).toBe('');
-    });
-
-    it('does not call onCellClick on ColorDot column', () => {
-      const onCellClick = vi.fn();
+    it('does not call onCellMouseDown on ColorDot column', () => {
+      const onCellMouseDown = vi.fn();
       render(
         <RecordRow
           {...defaultProps}
           visibleCols={new Set([ViewerColumn.ColorDot, ViewerColumn.Message])}
-          onCellClick={onCellClick}
+          onCellMouseDown={onCellMouseDown}
         />,
       );
       const colorDotCell = document.querySelector('[data-col-id="Color Dot"]') as HTMLElement;
-      fireEvent.click(colorDotCell);
-      expect(onCellClick).not.toHaveBeenCalled();
+      fireEvent.mouseDown(colorDotCell);
+      expect(onCellMouseDown).not.toHaveBeenCalled();
     });
 
     it('data cells have gridcell role', () => {
@@ -317,27 +309,70 @@ describe('Main', () => {
       expect(messageCell.classList.contains('select-none')).toBe(true);
     });
 
-    it('selected cell shows ring highlight', () => {
-      render(<RecordRow {...defaultProps} selectedCellCol={ViewerColumn.Message} />);
+    it('single selected cell has all 4 edge shadows', () => {
+      render(<RecordRow {...defaultProps} selectedCellCols={new Set([ViewerColumn.Message])} />);
       const messageCell = document.querySelector('[data-col-id="Message"]') as HTMLElement;
-      expect(messageCell.classList.contains('ring-2')).toBe(true);
-      expect(messageCell.classList.contains('ring-blue-500')).toBe(true);
+      const shadow = messageCell.style.boxShadow;
+      expect(shadow).toContain('inset 0 2px 0 0'); // top
+      expect(shadow).toContain('inset 0 -2px 0 0'); // bottom
+      expect(shadow).toContain('inset 2px 0 0 0'); // left
+      expect(shadow).toContain('inset -2px 0 0 0'); // right
     });
 
-    it('non-selected cells do not show ring highlight', () => {
-      render(<RecordRow {...defaultProps} selectedCellCol={ViewerColumn.Message} />);
+    it('non-selected cells have no boxShadow', () => {
+      render(<RecordRow {...defaultProps} selectedCellCols={new Set([ViewerColumn.Message])} />);
       const timestampCell = document.querySelector('[data-col-id="Timestamp"]') as HTMLElement;
-      expect(timestampCell.classList.contains('ring-2')).toBe(false);
+      expect(timestampCell.style.boxShadow).toBe('');
     });
 
-    it('selected cell in text-select mode has userSelect auto style', () => {
-      render(<RecordRow {...defaultProps} selectedCellCol={ViewerColumn.Message} isCellTextSelectable />);
+    it('adjacent selected cells share edges (no inner border)', () => {
+      render(
+        <RecordRow {...defaultProps} selectedCellCols={new Set([ViewerColumn.Timestamp, ViewerColumn.Message])} />,
+      );
+      const timestampCell = document.querySelector('[data-col-id="Timestamp"]') as HTMLElement;
       const messageCell = document.querySelector('[data-col-id="Message"]') as HTMLElement;
-      expect(messageCell.style.userSelect).toBe('auto');
+      // Timestamp: has left edge, no right edge (Message is adjacent)
+      expect(timestampCell.style.boxShadow).toContain('inset 2px 0 0 0'); // left
+      expect(timestampCell.style.boxShadow).not.toContain('inset -2px 0 0 0'); // no right
+      // Message: no left edge (Timestamp is adjacent), has right edge
+      expect(messageCell.style.boxShadow).not.toContain('inset 2px 0 0 0'); // no left
+      expect(messageCell.style.boxShadow).toContain('inset -2px 0 0 0'); // right
     });
 
-    it('non-selected cells do not have userSelect auto when another cell is text-selectable', () => {
-      render(<RecordRow {...defaultProps} selectedCellCol={ViewerColumn.Message} isCellTextSelectable />);
+    it('cell with selectedCellColsAbove has no top border', () => {
+      render(
+        <RecordRow
+          {...defaultProps}
+          selectedCellCols={new Set([ViewerColumn.Message])}
+          selectedCellColsAbove={new Set([ViewerColumn.Message])}
+        />,
+      );
+      const messageCell = document.querySelector('[data-col-id="Message"]') as HTMLElement;
+      expect(messageCell.style.boxShadow).not.toContain('inset 0 2px 0 0'); // no top
+      expect(messageCell.style.boxShadow).toContain('inset 0 -2px 0 0'); // bottom
+    });
+
+    it('cell with selectedCellColsBelow has no bottom border', () => {
+      render(
+        <RecordRow
+          {...defaultProps}
+          selectedCellCols={new Set([ViewerColumn.Message])}
+          selectedCellColsBelow={new Set([ViewerColumn.Message])}
+        />,
+      );
+      const messageCell = document.querySelector('[data-col-id="Message"]') as HTMLElement;
+      expect(messageCell.style.boxShadow).toContain('inset 0 2px 0 0'); // top
+      expect(messageCell.style.boxShadow).not.toContain('inset 0 -2px 0 0'); // no bottom
+    });
+
+    it('selected cell in text-select mode has userSelect text style', () => {
+      render(<RecordRow {...defaultProps} selectedCellCols={new Set([ViewerColumn.Message])} isCellTextSelectable />);
+      const messageCell = document.querySelector('[data-col-id="Message"]') as HTMLElement;
+      expect(messageCell.style.userSelect).toBe('text');
+    });
+
+    it('non-selected cells do not have userSelect when another cell is text-selectable', () => {
+      render(<RecordRow {...defaultProps} selectedCellCols={new Set([ViewerColumn.Message])} isCellTextSelectable />);
       const timestampCell = document.querySelector('[data-col-id="Timestamp"]') as HTMLElement;
       expect(timestampCell.style.userSelect).toBe('');
     });
@@ -348,10 +383,66 @@ describe('Main', () => {
       expect(messageCell.classList.contains('cursor-default')).toBe(true);
     });
 
-    it('selected cell has cursor-text class', () => {
-      render(<RecordRow {...defaultProps} selectedCellCol={ViewerColumn.Message} />);
+    it('selected cell with isCursorText has cursor-text class', () => {
+      render(<RecordRow {...defaultProps} selectedCellCols={new Set([ViewerColumn.Message])} isCursorText />);
       const messageCell = document.querySelector('[data-col-id="Message"]') as HTMLElement;
       expect(messageCell.classList.contains('cursor-text')).toBe(true);
+    });
+
+    it('selected cell without isCursorText has cursor-default class', () => {
+      render(<RecordRow {...defaultProps} selectedCellCols={new Set([ViewerColumn.Message])} isCursorText={false} />);
+      const messageCell = document.querySelector('[data-col-id="Message"]') as HTMLElement;
+      expect(messageCell.classList.contains('cursor-default')).toBe(true);
+    });
+
+    it('ColorDot cell has selection box-shadow when both neighbors are selected', () => {
+      render(
+        <RecordRow
+          {...defaultProps}
+          visibleCols={new Set([ViewerColumn.Timestamp, ViewerColumn.ColorDot, ViewerColumn.Message])}
+          selectedCellCols={new Set([ViewerColumn.Timestamp, ViewerColumn.Message])}
+        />,
+      );
+      const colorDotCell = document.querySelector('[data-col-id="Color Dot"]') as HTMLElement;
+      expect(colorDotCell.style.boxShadow).not.toBe('');
+    });
+
+    it('ColorDot cell has no selection box-shadow when only one neighbor is selected', () => {
+      render(
+        <RecordRow
+          {...defaultProps}
+          visibleCols={new Set([ViewerColumn.Timestamp, ViewerColumn.ColorDot, ViewerColumn.Message])}
+          selectedCellCols={new Set([ViewerColumn.Message])}
+        />,
+      );
+      const colorDotCell = document.querySelector('[data-col-id="Color Dot"]') as HTMLElement;
+      expect(colorDotCell.style.boxShadow).toBe('');
+    });
+
+    it('selected cell adjacent to ColorDot has no inner border when other side also selected', () => {
+      render(
+        <RecordRow
+          {...defaultProps}
+          visibleCols={new Set([ViewerColumn.Timestamp, ViewerColumn.ColorDot, ViewerColumn.Message])}
+          selectedCellCols={new Set([ViewerColumn.Timestamp, ViewerColumn.Message])}
+        />,
+      );
+      const timestampCell = document.querySelector('[data-col-id="Timestamp"]') as HTMLElement;
+      // Timestamp should NOT have a right border since Message (across ColorDot) is also selected
+      expect(timestampCell.style.boxShadow).not.toContain('inset -2px 0 0 0');
+    });
+
+    it('selected cell adjacent to ColorDot has border when other side is not selected', () => {
+      render(
+        <RecordRow
+          {...defaultProps}
+          visibleCols={new Set([ViewerColumn.Timestamp, ViewerColumn.ColorDot, ViewerColumn.Message])}
+          selectedCellCols={new Set([ViewerColumn.Timestamp])}
+        />,
+      );
+      const timestampCell = document.querySelector('[data-col-id="Timestamp"]') as HTMLElement;
+      // Timestamp SHOULD have a right border since Message is not selected
+      expect(timestampCell.style.boxShadow).toContain('inset -2px 0 0 0');
     });
   });
 
@@ -384,13 +475,16 @@ describe('Main', () => {
       isSelectionBottom: false,
       maxRowWidth: 500,
       colWidths: new Map<ViewerColumn, number>(),
-      selectedCellCol: null as ViewerColumn | null,
+      selectedCellCols: undefined as Set<ViewerColumn> | undefined,
+      selectedCellColsAbove: undefined as Set<ViewerColumn> | undefined,
+      selectedCellColsBelow: undefined as Set<ViewerColumn> | undefined,
+      isCursorText: true,
       isCellTextSelectable: false,
       measureElement: vi.fn(),
       measureRowElement: vi.fn(),
       measureCellElement: vi.fn(),
       onRowMouseDown: vi.fn(),
-      onCellClick: vi.fn(),
+      onCellMouseDown: vi.fn(),
     };
 
     it('renders "0" when row key is 0', () => {

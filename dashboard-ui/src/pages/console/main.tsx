@@ -379,6 +379,20 @@ function selectionBoxShadow(isTop: boolean, isBottom: boolean): string | undefin
   return undefined;
 }
 
+function cellSelectionBoxShadow(
+  isTop: boolean,
+  isBottom: boolean,
+  isLeft: boolean,
+  isRight: boolean,
+): string | undefined {
+  const shadows: string[] = [];
+  if (isTop) shadows.push('inset 0 2px 0 0 var(--color-blue-500)');
+  if (isBottom) shadows.push('inset 0 -2px 0 0 var(--color-blue-500)');
+  if (isLeft) shadows.push('inset 2px 0 0 0 var(--color-blue-500)');
+  if (isRight) shadows.push('inset -2px 0 0 0 var(--color-blue-500)');
+  return shadows.length > 0 ? shadows.join(', ') : undefined;
+}
+
 type RecordRowProps = {
   row: LogViewerVirtualRow;
   gridTemplate: string;
@@ -389,13 +403,16 @@ type RecordRowProps = {
   isSelectionBottom: boolean;
   maxRowWidth: number;
   colWidths: Map<ViewerColumn, number>;
-  selectedCellCol: ViewerColumn | null;
+  selectedCellCols: Set<ViewerColumn> | undefined;
+  selectedCellColsAbove: Set<ViewerColumn> | undefined;
+  selectedCellColsBelow: Set<ViewerColumn> | undefined;
+  isCursorText: boolean;
   isCellTextSelectable: boolean;
   measureElement: (node: Element | null) => void;
   measureRowElement: (el: HTMLDivElement | null) => void;
   measureCellElement: (el: HTMLDivElement | null) => void;
   onRowMouseDown: (key: number, event: React.MouseEvent) => void;
-  onCellClick: (rowKey: number, col: ViewerColumn, event: React.MouseEvent) => void;
+  onCellMouseDown: (rowKey: number, col: ViewerColumn, event: React.MouseEvent) => void;
 };
 
 export const RecordRow = memo(
@@ -409,13 +426,16 @@ export const RecordRow = memo(
     isSelectionBottom,
     maxRowWidth,
     colWidths,
-    selectedCellCol,
+    selectedCellCols,
+    selectedCellColsAbove,
+    selectedCellColsBelow,
+    isCursorText,
     isCellTextSelectable,
     measureElement,
     measureRowElement,
     measureCellElement,
     onRowMouseDown,
-    onCellClick,
+    onCellMouseDown,
   }: RecordRowProps) => {
     const els: React.ReactElement[] = [];
 
@@ -446,11 +466,13 @@ export const RecordRow = memo(
       </div>,
     );
 
-    visibleCols.forEach((col) => {
+    const colsArray = [...visibleCols];
+    for (let i = 0; i < colsArray.length; i += 1) {
+      const col = colsArray[i];
       const minWidth = isWrap && col === ViewerColumn.Message ? undefined : colWidths.get(col);
       const shouldWrap = isWrap && col === ViewerColumn.Message;
       const isTimestamp = col === ViewerColumn.Timestamp;
-      const isCellSelected = selectedCellCol === col;
+      const isCellSelected = selectedCellCols?.has(col) ?? false;
       const isColorDot = col === ViewerColumn.ColorDot;
 
       let cellBg: string | false;
@@ -460,18 +482,54 @@ export const RecordRow = memo(
         cellBg = isTimestamp ? 'bg-chrome-200' : row.index % 2 !== 0 && 'bg-chrome-100';
       }
 
+      // ColorDot is visually selected when both adjacent columns are selected
+      const isColorDotVisuallySelected =
+        isColorDot &&
+        i > 0 &&
+        i < colsArray.length - 1 &&
+        (selectedCellCols?.has(colsArray[i - 1]) ?? false) &&
+        (selectedCellCols?.has(colsArray[i + 1]) ?? false);
+
+      let cellShadow: string | undefined;
+      if (isCellSelected) {
+        const isEdgeTop = !selectedCellColsAbove?.has(col);
+        const isEdgeBottom = !selectedCellColsBelow?.has(col);
+        // Skip over ColorDot when checking adjacent selected cells
+        let prevIdx = i - 1;
+        if (prevIdx >= 0 && colsArray[prevIdx] === ViewerColumn.ColorDot) prevIdx -= 1;
+        let nextIdx = i + 1;
+        if (nextIdx < colsArray.length && colsArray[nextIdx] === ViewerColumn.ColorDot) nextIdx += 1;
+        const isEdgeLeft = prevIdx < 0 || !selectedCellCols!.has(colsArray[prevIdx]);
+        const isEdgeRight = nextIdx >= colsArray.length || !selectedCellCols!.has(colsArray[nextIdx]);
+        cellShadow = cellSelectionBoxShadow(isEdgeTop, isEdgeBottom, isEdgeLeft, isEdgeRight);
+      } else if (isColorDotVisuallySelected) {
+        const aboveAlsoVisual =
+          (selectedCellColsAbove?.has(colsArray[i - 1]) ?? false) &&
+          (selectedCellColsAbove?.has(colsArray[i + 1]) ?? false);
+        const belowAlsoVisual =
+          (selectedCellColsBelow?.has(colsArray[i - 1]) ?? false) &&
+          (selectedCellColsBelow?.has(colsArray[i + 1]) ?? false);
+        cellShadow = cellSelectionBoxShadow(!aboveAlsoVisual, !belowAlsoVisual, false, false);
+      }
+
+      const isNativeTextSelectable = isCellSelected && isCellTextSelectable;
+
       const cellClassName = cn(
         cellBg,
         'px-2',
         shouldWrap ? 'whitespace-pre-wrap wrap-break-word' : 'whitespace-nowrap',
-        !isColorDot && (isCellSelected ? 'cursor-text' : 'cursor-default'),
+        !isColorDot &&
+          (isCellSelected && isCursorText ? 'cursor-text group-data-[mod-key]:cursor-default' : 'cursor-default'),
         'select-none',
-        isCellSelected && 'ring-2 ring-blue-500 ring-inset',
       );
 
       const cellStyle: React.CSSProperties = {
         ...(minWidth && { minWidth: `${minWidth}px` }),
-        ...(isCellSelected && isCellTextSelectable && { userSelect: 'auto' as const }),
+        ...(isNativeTextSelectable && {
+          userSelect: 'text' as const,
+          WebkitUserSelect: 'text' as const,
+        }),
+        ...(cellShadow && { boxShadow: cellShadow }),
       };
 
       els.push(
@@ -483,22 +541,14 @@ export const RecordRow = memo(
             tabIndex={isColorDot ? undefined : 0}
             className={cellClassName}
             style={cellStyle}
-            onClick={isColorDot ? undefined : (e) => onCellClick(row.key, col, e)}
-            onMouseDown={
-              isColorDot || !isCellSelected
-                ? undefined
-                : (e) => {
-                    // Enable text selection before drag starts
-                    e.currentTarget.style.userSelect = 'auto';
-                  }
-            }
+            onMouseDown={isColorDot ? undefined : (e) => onCellMouseDown(row.key, col, e)}
             onKeyDown={
               isColorDot
                 ? undefined
                 : (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      onCellClick(row.key, col, e as unknown as React.MouseEvent);
+                      onCellMouseDown(row.key, col, e as unknown as React.MouseEvent);
                     }
                   }
             }
@@ -507,7 +557,7 @@ export const RecordRow = memo(
           </div>
         </CellContextMenu>,
       );
-    });
+    }
 
     return (
       <div
@@ -519,7 +569,7 @@ export const RecordRow = memo(
         data-row-key={row.key}
         role="row"
         aria-selected={isSelected}
-        className={cn('absolute top-0 left-0 grid leading-6 group', selectedCellCol && 'z-10')}
+        className={cn('absolute top-0 left-0 grid leading-6 group', selectedCellCols && 'z-10')}
         style={{
           gridTemplateColumns: gridTemplate,
           minWidth: isWrap ? '100%' : maxRowWidth || '100%',
@@ -544,8 +594,12 @@ export const RecordRow = memo(
     if (prev.isSelectionBottom !== next.isSelectionBottom) return false;
     if (prev.maxRowWidth !== next.maxRowWidth) return false;
     if (prev.colWidths !== next.colWidths) return false;
-    if (prev.selectedCellCol !== next.selectedCellCol) return false;
-    if (prev.isCellTextSelectable !== next.isCellTextSelectable) return false;
+    if (prev.selectedCellCols !== next.selectedCellCols) return false;
+    if (prev.selectedCellColsAbove !== next.selectedCellColsAbove) return false;
+    if (prev.selectedCellColsBelow !== next.selectedCellColsBelow) return false;
+    if (prev.isCursorText !== next.isCursorText && (prev.selectedCellCols || next.selectedCellCols)) return false;
+    if (prev.isCellTextSelectable !== next.isCellTextSelectable && (prev.selectedCellCols || next.selectedCellCols))
+      return false;
     return true;
   },
 );
@@ -578,10 +632,11 @@ export const Main = () => {
     selectedKeys,
     selectionTopKeys,
     selectionBottomKeys,
-    selectedCell,
+    selectedCells,
     isTextSelectMode,
+    isCursorText,
     handleRowMouseDown,
-    handleCellClick,
+    handleCellMouseDown,
     resetSelection,
   } = useSelection(virtualizerRef);
 
@@ -631,8 +686,23 @@ export const Main = () => {
     logViewerRef.current?.measure();
   }, [wrap]);
 
+  // Track Ctrl/Cmd held state via data attribute (no re-renders)
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const onKey = (e: KeyboardEvent) => {
+      el.toggleAttribute('data-mod-key', e.metaKey || e.ctrlKey);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('keyup', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('keyup', onKey);
+    };
+  }, []);
+
   return (
-    <div ref={wrapperRef} className="relative h-full w-full flex flex-col">
+    <div ref={wrapperRef} className="group relative h-full w-full flex flex-col">
       {isLoading && <LoadingOverlay />}
       <HeaderRow
         scrollElRef={scrollElRef}
@@ -690,12 +760,15 @@ export const Main = () => {
                     isSelectionBottom={selectionBottomKeys.has(virtualRow.key)}
                     maxRowWidth={maxRowWidth}
                     colWidths={colWidths}
-                    selectedCellCol={selectedCell?.rowKey === virtualRow.key ? selectedCell.col : null}
-                    isCellTextSelectable={selectedCell?.rowKey === virtualRow.key && isTextSelectMode}
+                    selectedCellCols={selectedCells.get(virtualRow.key)}
+                    selectedCellColsAbove={selectedCells.get(virtualRow.key - 1)}
+                    selectedCellColsBelow={selectedCells.get(virtualRow.key + 1)}
+                    isCursorText={isCursorText}
+                    isCellTextSelectable={isTextSelectMode && selectedCells.has(virtualRow.key)}
                     measureRowElement={measureRowElement}
                     measureCellElement={measureCellElement}
                     onRowMouseDown={handleRowMouseDown}
-                    onCellClick={handleCellClick}
+                    onCellMouseDown={handleCellMouseDown}
                   />
                 ))}
                 {virtualizer.hasMoreAfter && (
